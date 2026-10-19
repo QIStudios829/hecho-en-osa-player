@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hecho en Osa Player</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    /* Transparent so the player sits directly on the page's own background
+       instead of inside a visible slab. */
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 0;
+    padding: 0 20px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  :root {
+    --c-bg: #1a1d2e;
+    --c-bg-alt: #232743;
+    --c-border-hi: #4a5170;
+    --c-border-lo: #0a0c18;
+    --c-accent: #2eff5e;
+    --c-accent-bright: #5fff85;
+    --c-accent2: #ff8c00;
+    --c-accent3: #ffd700;
+    --c-dim: #0a8a30;
+    --c-dimmer: #064a1a;
+    --c-display-bg: #0a1428;
+    --c-display-border: #1a2848;
+    --c-gold: #2eff5e;
+    --c-cream: #F0EDE8;
+  }
+
+  .agd-root {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 340px;
+  }
+
+  .agd-window {
+    background: var(--c-bg);
+    border: 1px solid var(--c-border-hi);
+    border-bottom-color: var(--c-border-lo);
+    border-right-color: var(--c-border-lo);
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 #4a5170;
+  }
+
+  .agd-titlebar {
+    background: linear-gradient(180deg, #4a5170 0%, #1a1d2e 100%);
+    padding: 5px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #0a0c18;
+  }
+
+  .agd-brand {
+    font-family: 'Anton', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--c-accent);
+    text-shadow: 0 0 10px rgba(46,255,94,0.5);
+  }
+  /* Per-window headline colors so each window has its own identity */
+  .agd-brand.brand-main { color: #C8A97E; text-shadow: 0 0 10px rgba(200,169,126,0.55); }
+  .agd-brand.brand-eq   { color: #F0EDE8; text-shadow: 0 0 10px rgba(240,237,232,0.5); }
+  .agd-brand.brand-pl   { color: #C8A97E; text-shadow: 0 0 10px rgba(200,169,126,0.55); }
+  .agd-brand.brand-cy   { color: #F0EDE8; text-shadow: 0 0 10px rgba(240,237,232,0.5); }
+
+  .agd-wbtns { display: flex; gap: 4px; }
+  .agd-wbtn {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+  }
+  .agd-wbtn.min { background: #ffbd2e; }
+  .agd-wbtn.close { background: #ff5f57; }
+  .agd-wbtn.max { background: #28c840; }
+
+  .agd-display {
+    background: #0a1428;
+    margin: 6px;
+    padding: 6px 8px;
+    border: 1px solid #4a5170;
+    position: relative;
+    overflow: hidden;
+  }
+  .agd-display::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(46,255,94,0.025) 2px, rgba(46,255,94,0.025) 4px);
+    pointer-events: none;
+  }
+
+  .agd-display-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+  .agd-viz { display: flex; align-items: flex-end; gap: 2px; width: 50px; height: 28px; flex-shrink: 0; }
+  .agd-vbar { flex: 1; min-height: 2px; background: var(--c-accent); transition: height 0.05s linear; }
+
+  .agd-time {
+    font-family: 'Anton', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--c-accent);
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(46,255,94,0.6);
+    flex-shrink: 0;
+  }
+
+  .agd-meta { flex: 1; overflow: hidden; }
+  .agd-song-name {
+    font-size: 10px;
+    color: var(--c-accent);
+    white-space: nowrap;
+    overflow: hidden;
+    text-shadow: 0 0 4px rgba(46,255,94,0.3);
+  }
+  .agd-song-name-inner { display: inline-block; padding-right: 40px; }
+  .agd-song-name.scrolling .agd-song-name-inner { animation: scroll-text 14s linear infinite; }
+  @keyframes scroll-text {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .agd-song-sub { font-size: 9px; color: var(--c-dim); margin-top: 3px; display: flex; gap: 6px; align-items: center; }
+  .agd-pill { background: #4a5170; color: var(--c-accent); padding: 0 4px; border: 1px solid #4a5170; font-size: 8px; }
+
+  .agd-sliders { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .agd-slabel { font-size: 8px; color: var(--c-dim); flex-shrink: 0; }
+  .agd-strack { flex: 1; height: 4px; background: #4a5170; border: 1px solid #4a5170; position: relative; cursor: pointer; }
+  .agd-sfill { height: 100%; background: linear-gradient(90deg, var(--c-dim), var(--c-accent)); position: relative; }
+  .agd-sthumb { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 8px; height: 12px; background: var(--c-accent); box-shadow: 0 0 6px rgba(46,255,94,0.8); }
+
+  .agd-progress-wrap { margin: 0 6px 4px; display: flex; align-items: center; gap: 6px; }
+  .agd-progress { flex: 1; height: 6px; background: #152040; border: 1px solid #4a5170; cursor: pointer; position: relative; }
+  .agd-prog-fill { height: 100%; background: linear-gradient(90deg, #0a8a30, var(--c-accent)); position: relative; }
+  .agd-prog-thumb { position: absolute; right: -4px; top: 50%; transform: translateY(-50%); width: 8px; height: 14px; background: var(--c-accent); box-shadow: 0 0 8px rgba(46,255,94,0.9); }
+  .agd-prog-time { font-size: 9px; color: var(--c-dim); flex-shrink: 0; min-width: 60px; text-align: right; }
+
+  .agd-controls { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 8px; }
+
+  .agd-btn {
+    background: #232743;
+    border: 1px solid var(--c-border-hi);
+    border-bottom-color: var(--c-border-lo);
+    border-right-color: var(--c-border-lo);
+    color: var(--c-accent);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    width: 28px; height: 22px;
+    transition: background 0.08s;
+  }
+  .agd-btn:hover { background: #2e3354; box-shadow: 0 0 6px rgba(46,255,94,0.2); }
+  .agd-btn:active {
+    border-color: var(--c-border-lo);
+    border-bottom-color: var(--c-border-hi);
+    border-right-color: var(--c-border-hi);
+  }
+  .agd-btn.active { background: #4a5170; box-shadow: 0 0 8px rgba(46,255,94,0.3); }
+  .agd-btn-play { width: 34px; }
+  .agd-btn-eject { color: var(--c-accent2); border-color: #3a2a1a; font-size: 12px; }
+
+  .agd-row-btns { display: flex; justify-content: space-between; padding: 2px 8px 6px; }
+  .agd-toggle-group { display: flex; gap: 3px; }
+
+  .agd-tbtn {
+    background: #1a1d2e;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: #064a1a;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    padding: 1px 6px;
+    height: 16px;
+    cursor: pointer;
+    display: flex; align-items: center;
+    transition: all 0.1s;
+  }
+  .agd-tbtn.on { color: var(--c-accent); background: #152040; border-color: var(--c-dimmer); text-shadow: 0 0 4px rgba(46,255,94,0.4); }
+  .agd-tbtn:hover { background: #1e1e1e; }
+
+  .agd-eq-body { padding: 6px 8px; background: #0a1428; margin: 6px; border: 1px solid #4a5170; }
+  .agd-eq-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+
+  .agd-eq-presets {
+    display: flex;
+    gap: 3px;
+    padding: 6px 0 2px;
+    margin-top: 8px;
+    border-top: 1px solid #1a2848;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .agd-eq-preset {
+    background: #10131f;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: #0a8a30;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    padding: 2px 6px;
+    height: 18px;
+    cursor: pointer;
+    display: flex; align-items: center;
+    transition: all 0.12s;
+    letter-spacing: 0.6px;
+  }
+  .agd-eq-preset:hover {
+    background: #232743;
+    color: var(--c-accent);
+  }
+  .agd-eq-preset.active {
+    color: var(--c-accent);
+    background: #0e2b14;
+    border-color: var(--c-dim);
+    text-shadow: 0 0 4px rgba(46,255,94,0.5);
+    box-shadow: inset 0 0 6px rgba(46,255,94,0.2);
+  }
+  .agd-eq-preset .preset-icon {
+    margin-right: 4px;
+    font-size: 9px;
+    opacity: 0.85;
+  }
+  .agd-eq-bands { display: flex; gap: 2px; align-items: flex-end; position: relative; }
+  .agd-eq-col { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+  .agd-eq-sl {
+    writing-mode: vertical-lr; direction: rtl;
+    -webkit-appearance: none; appearance: none;
+    width: 10px; height: 56px;
+    background: #152040; border: 1px solid #4a5170;
+    cursor: pointer; outline: none;
+  }
+  .agd-eq-sl::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 7px;
+    background: var(--c-accent3);
+    border: 1px solid #0a8a30;
+    box-shadow: 0 0 4px rgba(46,255,94,0.6);
+  }
+  .agd-eq-sl::-moz-range-thumb { width: 14px; height: 7px; background: var(--c-accent3); border: 1px solid #0a8a30; }
+  .agd-eq-lbl { font-size: 7px; color: var(--c-dim); text-align: center; }
+  .agd-eq-dbrow { display: flex; flex-direction: column; justify-content: space-between; height: 56px; font-size: 7px; color: #064a1a; padding-right: 4px; }
+  .agd-eq-zero { position: absolute; left: 0; right: 0; top: calc(50% + 8px); height: 1px; background: #4a5170; pointer-events: none; }
+  .agd-preamp { display: flex; flex-direction: column; align-items: center; gap: 3px; margin-right: 6px; }
+  .agd-preamp-lbl { font-size: 7px; color: var(--c-dim); text-align: center; line-height: 1.2; }
+
+  .agd-pl-body { display: flex; }
+  .agd-pl-list { flex: 1; max-height: 168px; overflow-y: auto; background: #0a1428; min-width: 0; }
+  .agd-pl-list::-webkit-scrollbar { width: 6px; }
+  .agd-pl-list::-webkit-scrollbar-track { background: #0a0c18; }
+  .agd-pl-list::-webkit-scrollbar-thumb { background: #4a5170; }
+
+  .agd-pl-scroll {
+    width: 16px;
+    height: 168px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #0a0c18;
+    border-left: 1px solid #10131f;
+  }
+  .agd-pl-scroll-btn {
+    height: 16px;
+    background: #1a1d2e;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: var(--c-dim);
+    font-size: 7px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .agd-pl-scroll-btn:hover { background: #1e1e1e; color: var(--c-accent); }
+
+  .agd-pl-add-own {
+    display: flex; align-items: center; justify-content: center;
+    gap: 5px;
+    width: 100%;
+    padding: 5px 6px;
+    background: #1a1d2e;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: var(--c-accent);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .agd-pl-add-own:hover { background: #152040; text-shadow: 0 0 4px rgba(46,255,94,0.4); }
+
+  .agd-track {
+    display: flex; align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--c-dim);
+    gap: 6px;
+    transition: background 0.05s;
+    border-bottom: 1px solid #10131f;
+  }
+  .agd-track:hover { background: #152040; color: var(--c-accent); }
+  .agd-track.playing { color: var(--c-accent); background: #10131f; text-shadow: 0 0 4px rgba(46,255,94,0.4); }
+  .agd-track.playing .agd-tnum { color: var(--c-accent2); }
+  .agd-track.selected { background: #4a5170; }
+  .agd-tnum { color: #4a5170; min-width: 18px; font-size: 9px; }
+  .agd-ttitle { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agd-tdur { color: #4a5170; flex-shrink: 0; font-size: 9px; }
+  .agd-track-remove {
+    background: transparent;
+    border: none;
+    color: #4a5170;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 3px;
+    cursor: pointer;
+    opacity: 0;
+    flex-shrink: 0;
+    transition: opacity 0.1s, color 0.1s;
+  }
+  .agd-track:hover .agd-track-remove { opacity: 1; }
+  .agd-track-remove:hover { color: #ff5f57; }
+
+  .agd-pl-empty { padding: 24px 16px; text-align: center; color: #4a5170; font-size: 10px; }
+  .agd-pl-empty strong { color: var(--c-dim); display: block; margin-bottom: 6px; font-size: 11px; }
+
+  .agd-pl-foot {
+    display: flex; gap: 3px;
+    padding: 4px 6px;
+    border-top: 1px solid #4a5170;
+    background: #0a0c18;
+    align-items: center;
+  }
+  .agd-pl-btn {
+    background: #1a1d2e;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: var(--c-dim);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    padding: 1px 6px;
+    height: 16px;
+    cursor: pointer;
+    display: flex; align-items: center;
+  }
+  .agd-pl-btn:hover { background: #1e1e1e; color: var(--c-accent); }
+  .agd-pl-btn.danger:hover { color: #ff5f57; }
+  .agd-pl-totaltime { flex: 1; text-align: center; font-size: 9px; color: #4a5170; }
+
+  .agd-drop { border: 1px dashed #4a5170 !important; }
+  .agd-drop-active { border-color: var(--c-accent) !important; background: #152040; }
+
+  .agd-toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: #4a5170;
+    border: 1px solid var(--c-dim);
+    color: var(--c-accent);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    padding: 8px 16px;
+    box-shadow: 0 0 16px rgba(46,255,94,0.3);
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .agd-toast.show { opacity: 1; }
+
+  svg { display: block; }
+
+  input[type=file] { display: none; }
+
+  /* ── EMAIL CAPTURE POPUP ── */
+
+
+
+
+
+
+
+
+  @keyframes agd-pulse {
+    0% { transform: scale(0.9); opacity: 0; }
+    40% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes agd-mq {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  @media (max-width: 720px) {
+    .agd-mail-popup {
+      bottom: 12px;
+      right: 12px;
+      left: 12px;
+      width: auto;
+    }
+  }
+
+  /* ── DOCK FOR MINIMIZED WINDOWS ── */
+  .agd-dock {
+    position: fixed;
+    bottom: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 998;
+    pointer-events: none;
+  }
+  .agd-dock-item {
+    pointer-events: auto;
+    background: var(--c-bg);
+    border: 1px solid var(--c-border-hi);
+    border-bottom-color: var(--c-border-lo);
+    border-right-color: var(--c-border-lo);
+    box-shadow: 0 0 0 1px #000, 0 4px 12px rgba(0,0,0,0.6), inset 0 1px 0 #4a5170;
+    padding: 4px 10px 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    min-width: 180px;
+    height: 24px;
+    font-family: 'Anton', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 2px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transform-origin: left bottom;
+    animation: dock-pop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  }
+  @keyframes dock-pop {
+    0% { transform: translateY(20px) scale(0.85); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .agd-dock-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 0 0 1px #000, 0 4px 16px rgba(46,255,94,0.25), inset 0 1px 0 #4a5170;
+  }
+  .agd-dock-item-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    box-shadow: 0 0 6px rgba(46,255,94,0.8);
+    animation: dock-pulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes dock-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  .agd-dock-restore {
+    margin-left: auto;
+    color: var(--c-dim);
+    font-size: 11px;
+    font-family: 'Space Grotesk', sans-serif;
+    flex-shrink: 0;
+    transition: color 0.12s;
+  }
+  .agd-dock-item:hover .agd-dock-restore { color: var(--c-accent); }
+
+  /* Window state when minimized — fully hidden but tracked */
+  .agd-window.minimized { display: none !important; }
+
+
+  /* ── CYMATICS WINDOW ── */
+  .agd-cy-body {
+    background: #0a1428;
+    margin: 6px;
+    padding: 6px;
+    border: 1px solid #4a5170;
+    position: relative;
+  }
+
+  .agd-cy-canvas-wrap {
+    background: #000;
+    border: 1px solid #4a5170;
+    position: relative;
+    overflow: hidden;
+    height: 180px;
+  }
+  .agd-cy-canvas-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(46,255,94,0.05) 2px, rgba(46,255,94,0.05) 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .agd-cy-canvas { display: block; width: 100%; height: 100%; }
+
+  .agd-cy-overlay {
+    position: absolute;
+    top: 6px; left: 8px;
+    z-index: 2;
+    font-family: 'Anton', sans-serif;
+    font-weight: 700;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--c-accent);
+    text-shadow: 0 0 6px rgba(46,255,94,0.6);
+    pointer-events: none;
+  }
+  .agd-cy-overlay-hz {
+    position: absolute;
+    bottom: 6px; left: 8px;
+    z-index: 2;
+    font-size: 8px;
+    color: var(--c-dim);
+    letter-spacing: 1px;
+    pointer-events: none;
+  }
+
+  .agd-cy-controls {
+    display: flex;
+    gap: 4px;
+    padding: 6px 6px 4px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .agd-cy-mode {
+    background: #1a1d2e;
+    border: 1px solid #4a5170;
+    border-bottom-color: #0a0c18;
+    border-right-color: #0a0c18;
+    color: var(--c-dim);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 8px;
+    padding: 2px 6px;
+    height: 18px;
+    cursor: pointer;
+    display: flex; align-items: center;
+    transition: all 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .agd-cy-mode:hover { background: #1e1e1e; color: var(--c-accent); }
+  .agd-cy-mode.active {
+    color: var(--c-accent);
+    background: #152040;
+    border-color: var(--c-dimmer);
+    text-shadow: 0 0 4px rgba(46,255,94,0.4);
+    box-shadow: inset 0 0 6px rgba(46,255,94,0.15);
+  }
+
+  .agd-cy-fs {
+    margin-left: auto;
+    background: #232743;
+    border: 1px solid var(--c-border-hi);
+    border-bottom-color: var(--c-border-lo);
+    border-right-color: var(--c-border-lo);
+    color: var(--c-accent2);
+    font-family: 'Anton', sans-serif;
+    font-weight: 700;
+    font-size: 8px;
+    padding: 2px 8px;
+    height: 18px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .agd-cy-fs:hover {
+    background: #2e3354;
+    box-shadow: 0 0 8px rgba(255,107,0,0.3);
+  }
+
+  .agd-cy-row2 {
+    display: flex;
+    gap: 6px;
+    padding: 0 6px 6px;
+    align-items: center;
+    font-size: 8px;
+    color: var(--c-dim);
+  }
+  .agd-cy-row2 .agd-strack { height: 4px; }
+  .agd-cy-row2 .agd-sthumb { width: 6px; height: 10px; }
+
+  /* Fullscreen mode */
+  .agd-cy-body.fullscreen {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    background: #000;
+    border: none;
+  }
+  .agd-cy-body.fullscreen .agd-cy-canvas-wrap {
+    flex: 1;
+    height: auto;
+    border: none;
+  }
+  .agd-cy-body.fullscreen .agd-cy-overlay {
+    font-size: 14px;
+    top: 16px; left: 20px;
+  }
+  .agd-cy-body.fullscreen .agd-cy-overlay-hz {
+    font-size: 11px;
+    bottom: 16px; left: 20px;
+  }
+  .agd-cy-body.fullscreen + * { display: none !important; }
+
+  .agd-cy-fs-controls {
+    position: absolute;
+    bottom: 16px; right: 20px;
+    display: flex; gap: 4px;
+    z-index: 3;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 60vw;
+  }
+  .agd-cy-fs-controls .agd-cy-mode { font-size: 10px; padding: 4px 10px; height: 24px; }
+  .agd-cy-fs-controls .agd-cy-fs { font-size: 10px; padding: 4px 12px; height: 24px; }
+
+  /* OSA in a frame, in the player's own gold */
+  .hx-shout { color: #C8A97E; border: 1px solid #C8A97E; padding: 0 5px; margin-left: 4px; letter-spacing: 2px; }
+  .agd-song-name { font-family: 'Bricolage Grotesque', sans-serif !important; font-weight: 800; }
+
+  /* ── Jungle meets sea scene ── */
+  body.hx-has-scene { background: #0E1A2E; min-height: 100vh; padding: 28px 16px 40px; }
+  body.hx-has-scene .agd-root { position: relative; z-index: 2; }
+  body.hx-has-scene .agd-window { box-shadow: 0 0 0 1px #0B0F0A, 0 10px 0 rgba(11,15,10,0.55), 0 18px 40px rgba(11,15,10,0.6); }
+  #hxScene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background: #0E1A2E; }
+  #hxSvg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #hxGrain { position: absolute; inset: 0; opacity: 0.09; mix-blend-mode: overlay; }
+  .hx-wave { animation: hxDrift linear infinite; }
+  @keyframes hxDrift { from { transform: translateX(0); } to { transform: translateX(-1600px); } }
+  .hx-sway { animation: hxSway ease-in-out infinite alternate; transform-box: view-box; }
+  .hx-leaf { animation-name: hxSwayLeaf; }
+  @keyframes hxSway { from { transform: rotate(-3deg); } to { transform: rotate(3.5deg); } }
+  @keyframes hxSwayLeaf { from { transform: rotate(-2deg); } to { transform: rotate(2.5deg); } }
+  .hx-star { animation: hxTwinkle 4s ease-in-out infinite alternate; }
+  @keyframes hxTwinkle { from { opacity: 0.15; } to { opacity: 0.7; } }
+  .hx-glint { animation: hxGlint 2.6s ease-in-out infinite alternate; }
+  @keyframes hxGlint { from { opacity: 0.15; } to { opacity: 0.85; } }
+  .hx-fly { animation: hxFly ease-in-out infinite alternate; }
+  @keyframes hxFly { 0% { transform: translate(0,0); opacity: 0; } 30% { opacity: 1; } 70% { opacity: 0.2; } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0.9; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hx-wave, .hx-sway, .hx-star, .hx-glint, .hx-fly { animation: none; }
+  }
+
+  /* ── Background phrases ── */
+  #hxWords { position: fixed; z-index: 1; pointer-events: none; top: 13vh; width: calc(50vw - 170px - 28px);
+    padding: 0 28px; display: flex; justify-content: center; text-align: center; }
+  #hxWords.left { left: 0; }
+  #hxWords.right { right: 0; }
+  #hxWords .hx-line { font-family: 'Anton', sans-serif; text-transform: uppercase; color: #F4F0E4;
+    font-size: clamp(34px, 3.7vw, 66px); line-height: 1.08; letter-spacing: 0.01em; max-width: 11em;
+    text-shadow: 0 4px 0 rgba(11,15,10,0.65); }
+  #hxWords .hx-w { display: inline-block; opacity: 0; transform: translateY(0.45em) rotate(-3deg);
+    transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2,1.4,.4,1); margin: 0 0.12em; }
+  #hxWords.in .hx-w { opacity: 1; transform: none; }
+  #hxWords.out .hx-w { opacity: 0; transform: translateY(-0.5em); transition: opacity 0.9s ease, transform 1.1s ease; transition-delay: 0s !important; }
+  #hxWords .hx-w.shout { color: #F1CC4F; background: #1C241B; border: 2px solid #F1CC4F; padding: 0 0.16em; text-shadow: none;
+    box-shadow: 0 5px 0 rgba(11,15,10,0.65); }
+  #hxWords .hx-w.teal { color: #16BEAE; }
+  #hxWords .hx-w.under { text-decoration: underline; text-decoration-color: #86C746; text-decoration-thickness: 0.09em; text-underline-offset: 0.12em; }
+  @media (max-width: 900px) {
+    body.hx-has-scene { padding-top: 172px; }
+    #hxWords, #hxWords.left, #hxWords.right { position: absolute; top: 22px; left: 0; right: 0; width: auto; padding: 0 16px; }
+    #hxWords .hx-line { font-size: clamp(26px, 7.4vw, 40px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #hxWords .hx-w { transform: none !important; transition: opacity 0.8s ease; }
+  }
+
+  /* ── Surfer vs Shark background game ── */
+  #hxGame { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; display: block; touch-action: none; }
+  body.hx-playing #hxGame { cursor: crosshair; }
+  #hxGamePanel { position: fixed; left: 22px; bottom: 22px; z-index: 3; width: 240px; background: #1a1d2e;
+    border: 1px solid #4a5170; box-shadow: 0 0 0 1px #000, 0 8px 24px rgba(0,0,0,0.5); color: #F0EDE8; }
+  #hxGamePanel .hg-bar { background: linear-gradient(180deg, #4a5170 0%, #1a1d2e 100%); padding: 5px 10px;
+    font-family: 'Anton', sans-serif; font-size: 12px; letter-spacing: 3px; color: #C8A97E; }
+  #hxGamePanel .hg-body { padding: 10px; background: #0a1428; margin: 6px; border: 1px solid #1a2848; }
+  #hxGamePanel .hg-msg { font-family: 'Anton', sans-serif; font-size: 18px; letter-spacing: 1px; line-height: 1.15; color: #2eff5e; margin-bottom: 4px; }
+  #hxGamePanel .hg-sub { font-size: 10px; color: #8a93b8; line-height: 1.45; margin-bottom: 9px; }
+  #hxGamePanel .hg-btns { display: flex; gap: 6px; }
+  #hxGamePanel button { flex: 1; font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: 2px; padding: 7px 4px;
+    background: #232743; color: #2eff5e; border: 1px solid #4a5170; cursor: pointer; }
+  #hxGamePanel button:hover { background: #2e3354; box-shadow: 0 0 8px rgba(46,255,94,0.3); }
+  #hxGamePanel button.chomp { color: #ff8c00; }
+  #hxGamePanel button.quit { color: #8a93b8; flex: 0 0 auto; padding: 7px 12px; }
+  /* Phones: while a round is on, hide the player windows so the whole screen is water */
+  @media (max-width: 900px) {
+    body.hx-playing .agd-root > .agd-window, body.hx-playing #hxWords { display: none !important; }
+    body.hx-playing { padding-top: 16px !important; }
+  }
+  @media (max-width: 900px) {
+    #hxGamePanel { position: static; width: auto; margin-top: 3px; }
+  }
+
+  /* ── Dancing QR code, bottom right ── */
+  #hxQR { position: fixed; right: 22px; bottom: 22px; z-index: 3; display: block; text-decoration: none; }
+  #hxQR .qr-dance { animation: hxQrDance 1.1s ease-in-out infinite; transform-origin: 50% 100%; }
+  #hxQR:hover .qr-dance, #hxQR:focus-visible .qr-dance { animation-play-state: paused; }
+  #hxQR .qr-beat { transition: transform 0.08s linear; transform-origin: 50% 100%; }
+  #hxQR .qr-card { width: 132px; padding: 7px; background: #F0EDE8; border: 2px solid #2eff5e;
+    box-shadow: 0 0 0 1px #000, 0 0 18px rgba(46,255,94,0.45), 0 10px 22px rgba(0,0,0,0.5); }
+  #hxQR .qr-card svg { display: block; width: 100%; height: auto; }
+  #hxQR .qr-cap { margin-top: 7px; text-align: center; font-family: 'Anton', sans-serif; font-size: 15px; letter-spacing: 3px; color: #2eff5e; text-shadow: 0 0 8px rgba(46,255,94,0.5); }
+  #hxQR .qr-url { text-align: center; font-size: 10px; color: #C8A97E; letter-spacing: 0.5px; }
+  @keyframes hxQrDance {
+    0%   { transform: translateY(0) rotate(0deg); }
+    25%  { transform: translateY(-9px) rotate(-6deg); }
+    50%  { transform: translateY(0) rotate(0deg) scaleY(0.96); }
+    75%  { transform: translateY(-9px) rotate(6deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  @media (max-width: 900px) {
+    #hxQR { right: 10px; bottom: 10px; }
+    #hxQR .qr-card { width: 88px; padding: 5px; }
+    #hxQR .qr-cap { font-size: 11px; letter-spacing: 2px; margin-top: 4px; }
+    #hxQR .qr-url { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { #hxQR .qr-dance { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="agd-root" id="agdRoot">
+
+  <div class="agd-window" id="mainWin">
+    <div class="agd-titlebar">
+      <span class="agd-brand brand-main">HECHO EN <span class="hx-shout">OSA</span></span>
+      <div class="agd-wbtns">
+        <button class="agd-wbtn min" title="Minimize" onclick="minimizeWindow('mainWin', 'HECHO EN OSA')"></button>
+        <button class="agd-wbtn max" title="Make bigger" onclick="toggleBigPlayer()"></button>
+        <button class="agd-wbtn close" title="Close"></button>
+      </div>
+    </div>
+
+    <div class="agd-display">
+      <div class="agd-display-top">
+        <div class="agd-viz" id="vizEl"></div>
+        <div class="agd-time" id="timeEl">0:00</div>
+        <div class="agd-meta">
+          <div class="agd-song-name" id="songNameEl"><span class="agd-song-name-inner" id="songNameInner">No track loaded</span></div>
+          <div class="agd-song-sub">
+            <span class="agd-pill" id="bitratePill">---</span>KBPS
+            <span class="agd-pill" id="khzPill">--</span>KHZ
+            <span id="stereoEl" style="color:#0a8a30;font-size:8px">STEREO</span>
+          </div>
+        </div>
+      </div>
+      <div class="agd-sliders">
+        <span class="agd-slabel">VOL</span>
+        <div class="agd-strack" id="volTrack" style="flex:2">
+          <div class="agd-sfill" id="volFill" style="width:70%"><div class="agd-sthumb"></div></div>
+        </div>
+        <span class="agd-slabel">BAL</span>
+        <div class="agd-strack" id="balTrack" style="flex:1.2">
+          <div class="agd-sfill" id="balFill" style="width:50%"><div class="agd-sthumb"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="agd-progress-wrap">
+      <div class="agd-progress" id="progressEl">
+        <div class="agd-prog-fill" id="progFillEl" style="width:0%">
+          <div class="agd-prog-thumb"></div>
+        </div>
+      </div>
+      <div class="agd-prog-time" id="progTimeEl">0:00 / 0:00</div>
+    </div>
+
+    <div class="agd-controls">
+      <button class="agd-btn" id="btnPrev" title="Previous">
+        <svg width="11" height="10" viewBox="0 0 11 10"><polygon points="0,5 5,0 5,10" fill="currentColor"/><rect x="5" y="0" width="2" height="10" fill="currentColor"/></svg>
+      </button>
+      <button class="agd-btn agd-btn-play" id="btnPlay" title="Play">
+        <svg width="11" height="11" viewBox="0 0 11 11"><polygon points="0,0 11,5.5 0,11" fill="currentColor"/></svg>
+      </button>
+      <button class="agd-btn" id="btnPause" title="Pause">
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="3.5" height="10" fill="currentColor"/><rect x="5.5" y="0" width="3.5" height="10" fill="currentColor"/></svg>
+      </button>
+      <button class="agd-btn" id="btnStop" title="Stop">
+        <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="0" width="10" height="10" fill="currentColor"/></svg>
+      </button>
+      <button class="agd-btn" id="btnNext" title="Next">
+        <svg width="11" height="10" viewBox="0 0 11 10"><rect x="0" y="0" width="2" height="10" fill="currentColor"/><polygon points="2,0 11,5 2,10" fill="currentColor"/></svg>
+      </button>
+      <button class="agd-btn agd-btn-eject" id="btnEject" title="Add files">▲</button>
+    </div>
+
+    <div class="agd-row-btns">
+      <div class="agd-toggle-group">
+        <button class="agd-tbtn on" id="tbEQ" onclick="toggleEQ()">EQ</button>
+        <button class="agd-tbtn on" id="tbPL" onclick="togglePL()">PL</button>
+        <button class="agd-tbtn on" id="tbCY" onclick="toggleCy()">CY</button>
+      </div>
+      <div class="agd-toggle-group">
+        <button class="agd-tbtn" id="tbShuf" onclick="toggleShuffle()">SHUF</button>
+        <button class="agd-tbtn" id="tbRep" onclick="toggleRepeat()">REP</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="agd-window" id="eqWin">
+    <div class="agd-titlebar">
+      <span class="agd-brand brand-eq" style="font-size:11px;letter-spacing:3px">HECHO EN OSA EQUALIZER</span>
+      <div class="agd-wbtns">
+        <button class="agd-wbtn min" title="Minimize" onclick="minimizeWindow('eqWin', 'EQUALIZER')"></button>
+        <button class="agd-wbtn max" title="Make bigger" onclick="toggleBigPlayer()"></button>
+        <button class="agd-wbtn close" onclick="toggleEQ()"></button>
+      </div>
+    </div>
+    <div class="agd-eq-body">
+      <div class="agd-eq-top">
+        <div class="agd-toggle-group">
+          <button class="agd-tbtn on" id="eqOnBtn" onclick="toggleEQOn()">ON</button>
+          <button class="agd-tbtn" id="eqAutoBtn">AUTO</button>
+        </div>
+        <button class="agd-tbtn" id="eqResetBtn" onclick="resetEQ()">RESET</button>
+      </div>
+      <div style="display:flex;gap:4px">
+        <div class="agd-eq-dbrow"><span>+12</span><span>&nbsp;0</span><span>-12</span></div>
+        <div class="agd-preamp">
+          <div class="agd-preamp-lbl">PRE<br>AMP</div>
+          <input type="range" class="agd-eq-sl" min="-12" max="12" value="0" id="preampSl">
+        </div>
+        <div style="width:1px;background:#4a5170;margin:0 2px;align-self:stretch"></div>
+        <div class="agd-eq-bands" id="eqBands" style="flex:1">
+          <div class="agd-eq-zero"></div>
+        </div>
+      </div>
+      <div class="agd-eq-presets" id="eqPresets"></div>
+    </div>
+  </div>
+
+  <div class="agd-window" id="plWin">
+    <div class="agd-titlebar">
+      <span class="agd-brand brand-pl" style="font-size:11px;letter-spacing:3px">HECHO EN OSA PLAYLIST</span>
+      <div class="agd-wbtns">
+        <button class="agd-wbtn min" title="Minimize" onclick="minimizeWindow('plWin', 'PLAYLIST')"></button>
+        <button class="agd-wbtn max" title="Make bigger" onclick="toggleBigPlayer()"></button>
+        <button class="agd-wbtn close" onclick="togglePL()"></button>
+      </div>
+    </div>
+    <div class="agd-pl-body">
+      <div class="agd-pl-list" id="plListEl"></div>
+      <div class="agd-pl-scroll">
+        <button class="agd-pl-scroll-btn" id="plScrollUp" title="Scroll up">▲</button>
+        <button class="agd-pl-scroll-btn" id="plScrollDown" title="Scroll down">▼</button>
+      </div>
+    </div>
+    <button class="agd-pl-add-own" onclick="document.getElementById('fileInput').click()" title="Add your own music">+ ADD YOUR OWN MUSIC</button>
+    <div class="agd-pl-foot">
+      <button class="agd-pl-btn danger" onclick="removeSelected()" title="Remove selected">REM</button>
+      <button class="agd-pl-btn" onclick="selectAll()">SEL</button>
+      <button class="agd-pl-btn danger" onclick="clearPlaylist()">CLR</button>
+      <div class="agd-pl-totaltime" id="plTotalEl">0:00</div>
+      <button class="agd-pl-btn">LIST</button>
+    </div>
+  </div>
+
+  <!-- ── CYMATICS WINDOW ── -->
+  <div class="agd-window" id="cyWin">
+    <div class="agd-titlebar">
+      <span class="agd-brand brand-cy" style="font-size:11px;letter-spacing:3px">HECHO EN OSA CYMATICS</span>
+      <div class="agd-wbtns">
+        <button class="agd-wbtn min" title="Minimize" onclick="minimizeWindow('cyWin', 'CYMATICS')"></button>
+        <button class="agd-wbtn max" title="Full screen visuals" onclick="toggleCyFullscreen()"></button>
+        <button class="agd-wbtn close" onclick="toggleCy()"></button>
+      </div>
+    </div>
+    <div class="agd-cy-body" id="cyBody">
+      <div class="agd-cy-canvas-wrap">
+        <canvas class="agd-cy-canvas" id="cyCanvas"></canvas>
+        <div class="agd-cy-overlay" id="cyModeLabel">SPARK NIGHT</div>
+        <div class="agd-cy-overlay-hz" id="cyHzLabel">0 HZ</div>
+        <div class="agd-cy-fs-controls" id="cyFsControls" style="display:none"></div>
+      </div>
+      <div class="agd-cy-controls" id="cyControls">
+        <button class="agd-cy-mode active" data-mode="plasma">SPARK NIGHT</button>
+        <button class="agd-cy-mode" data-mode="chladni">VIBE JAM</button>
+        <button class="agd-cy-mode" data-mode="spectrum">BUILD WEEK</button>
+        <button class="agd-cy-mode" data-mode="interference">BUG HUNT</button>
+        <button class="agd-cy-mode" data-mode="standing">CODE FREEZE</button>
+        <button class="agd-cy-mode" data-mode="lissajous">SHIP IT</button>
+        <button class="agd-cy-mode" data-mode="circular">EXHIBITION DAY</button>
+        <button class="agd-cy-fs" id="cyFsBtn" onclick="toggleCyFullscreen()">⛶ FULL</button>
+      </div>
+      <div class="agd-cy-row2">
+        <span>SENS</span>
+        <div class="agd-strack" id="cySensTrack" style="flex:1">
+          <div class="agd-sfill" id="cySensFill" style="width:60%"><div class="agd-sthumb"></div></div>
+        </div>
+        <span>HUE</span>
+        <div class="agd-strack" id="cyHueTrack" style="flex:1">
+          <div class="agd-sfill" id="cyHueFill" style="width:50%"><div class="agd-sthumb"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<input type="file" id="fileInput" accept="audio/*" multiple>
+<audio id="audioEl" preload="metadata" crossorigin="anonymous"></audio>
+<div class="agd-toast" id="toastEl"></div>
+<div class="agd-dock" id="agdDock"></div>
+
+
+    
+
+<script>
+const EQ_BANDS = ['70','180','320','600','1K','3K','6K','12K','14K','16K'];
+const EQ_FREQS = [70,180,320,600,1000,3000,6000,12000,14000,16000];
+const EQ_DEFAULTS = [0,0,0,0,0,0,0,0,0,0];
+
+// EQ Presets — gains for [70, 180, 320, 600, 1k, 3k, 6k, 12k, 14k, 16k]
+const EQ_PRESETS = [
+  { id: 'flat',     name: 'FLAT',     icon: '─', preamp: 0,  bands: [0,0,0,0,0,0,0,0,0,0] },
+  { id: 'rock',     name: 'ROCK',     icon: '◢', preamp: -1, bands: [5,4,2,-2,-1,1,3,5,5,5] },
+  { id: 'pop',      name: 'POP',      icon: '◆', preamp: -2, bands: [-1,2,4,5,4,1,-1,-1,1,2] },
+  { id: 'jazz',     name: 'JAZZ',     icon: '♪', preamp: -1, bands: [3,2,1,2,-1,-1,0,1,2,3] },
+  { id: 'classic',  name: 'CLASSICAL',icon: '♫', preamp: 0,  bands: [4,3,2,2,-1,-1,0,2,3,4] },
+  { id: 'bass',     name: 'BASS',     icon: '▼', preamp: -3, bands: [7,6,5,3,1,0,0,0,0,0] },
+  { id: 'treble',   name: 'TREBLE',   icon: '▲', preamp: -2, bands: [0,0,0,-1,-1,2,4,6,7,7] },
+  { id: 'vocal',    name: 'VOCAL',    icon: '◉', preamp: -1, bands: [-2,-1,1,3,5,4,3,1,0,-1] },
+  { id: 'electronic',name:'ELECTRO',  icon: '◈', preamp: -3, bands: [6,5,1,-1,-2,1,1,3,5,6] },
+  { id: 'lounge',   name: 'LOUNGE',   icon: '◐', preamp: -1, bands: [-2,-1,0,2,4,3,1,0,1,2] },
+  { id: 'live',     name: 'LIVE',     icon: '⊙', preamp: -2, bands: [-2,0,3,4,4,3,2,1,1,1] },
+  { id: 'fullbass', name: 'FULL BASS',icon: '◣', preamp: -3, bands: [8,7,7,5,3,0,-3,-5,-5,-5] },
+  { id: 'soft',     name: 'SOFT',     icon: '○', preamp: -1, bands: [3,1,-1,-2,-1,2,4,5,6,6] },
+  { id: 'party',    name: 'PARTY',    icon: '★', preamp: -2, bands: [4,4,0,0,0,0,0,0,4,4] },
+];
+
+let activePresetId = 'flat';
+
+
+// Songs live in songs/ next to this file and load only when played.
+// Opened straight from Finder (file://) they still play, but Chrome won't let
+// the EQ and visualizers read them, so those stay idle. Online, or through
+// "Preview Player.command", everything works.
+const FROM_DISK = location.protocol === 'file:';
+if (FROM_DISK) document.getElementById('audioEl').removeAttribute('crossorigin');
+
+// ── TRACKS ──
+// Drop the mp3 next to this file and keep `src` matching its filename.
+// Duration fills in automatically once the file loads.
+const PLAYLIST = [
+  { title: 'Spark Night', dur: '0:45', secs: 45, src: 'songs/spark-night.mp3', bitrate: 192, sample: 44 },
+  { title: 'Vibe Jam Hecho en Osa', dur: '3:00', secs: 180, src: 'songs/vibe-jam-hecho-en-osa.mp3', bitrate: 192, sample: 44 },
+  { title: 'Code Freeze Fiesta', dur: '2:30', secs: 150, src: 'songs/code-freeze-fiesta.mp3', bitrate: 192, sample: 44 },
+  { title: 'Before It Was Real', dur: '2:00', secs: 120, src: 'songs/before-it-was-real.mp3', bitrate: 192, sample: 44 },
+];
+
+let S = {
+  playing: false,
+  track: 0,
+  shuffle: false,
+  repeat: false,
+  eqOn: true,
+  eqVisible: true,
+  plVisible: true,
+  selected: new Set(),
+};
+
+const audio = document.getElementById('audioEl');
+audio.volume = 0.7;
+
+// Web Audio for visualizer + EQ
+let audioCtx, source, analyser, gainNode, eqNodes = [], preampNode, splitter, merger, panner;
+let analyserData;
+
+function initAudioGraph() {
+  if (audioCtx || FROM_DISK) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  source = audioCtx.createMediaElementSource(audio);
+  preampNode = audioCtx.createGain();
+  preampNode.gain.value = 1;
+
+  // 10-band EQ (BiquadFilter peaking)
+  eqNodes = EQ_FREQS.map((f, i) => {
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = (i === 0) ? 'lowshelf' : (i === EQ_FREQS.length-1 ? 'highshelf' : 'peaking');
+    filter.frequency.value = f;
+    filter.Q.value = 1.0;
+    filter.gain.value = 0;
+    return filter;
+  });
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.7;
+  analyserData = new Uint8Array(analyser.frequencyBinCount);
+
+  // chain: source -> preamp -> eq[0] -> eq[1] -> ... -> analyser -> destination
+  let node = source;
+  node.connect(preampNode); node = preampNode;
+  eqNodes.forEach(eq => { node.connect(eq); node = eq; });
+  node.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function fmt(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m+':'+(sec<10?'0':'')+sec;
+}
+
+function buildViz() {
+  const el = document.getElementById('vizEl');
+  el.innerHTML = '';
+  for(let i=0;i<10;i++){
+    const b=document.createElement('div');
+    b.className='agd-vbar';
+    b.style.height='3px';
+    el.appendChild(b);
+  }
+}
+
+function buildEQ() {
+  const el = document.getElementById('eqBands');
+  const line = el.querySelector('.agd-eq-zero');
+  el.innerHTML='';
+  el.appendChild(line);
+  EQ_BANDS.forEach((band,i)=>{
+    const col=document.createElement('div');
+    col.className='agd-eq-col';
+    const sl=document.createElement('input');
+    sl.type='range'; sl.className='agd-eq-sl';
+    sl.min=-12; sl.max=12; sl.value=EQ_DEFAULTS[i]; sl.step=0.5;
+    sl.dataset.band = i;
+    sl.addEventListener('input', () => {
+      if (eqNodes[i]) eqNodes[i].gain.value = parseFloat(sl.value);
+      // Manual edit clears active preset highlight
+      clearActivePreset();
+    });
+    const lbl=document.createElement('div');
+    lbl.className='agd-eq-lbl'; lbl.textContent=band;
+    col.appendChild(sl); col.appendChild(lbl);
+    el.appendChild(col);
+  });
+
+  document.getElementById('preampSl').addEventListener('input', (e) => {
+    const db = parseFloat(e.target.value);
+    if (preampNode) preampNode.gain.value = Math.pow(10, db / 20);
+    clearActivePreset();
+  });
+}
+
+function buildEQPresets() {
+  const el = document.getElementById('eqPresets');
+  if (!el) return;
+  el.innerHTML = '';
+  EQ_PRESETS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'agd-eq-preset' + (p.id === activePresetId ? ' active' : '');
+    btn.dataset.preset = p.id;
+    btn.title = `${p.name} preset`;
+    btn.innerHTML = `<span class="preset-icon">${p.icon}</span>${p.name}`;
+    btn.addEventListener('click', () => applyPreset(p.id));
+    el.appendChild(btn);
+  });
+}
+
+function applyPreset(id) {
+  const preset = EQ_PRESETS.find(p => p.id === id);
+  if (!preset) return;
+
+  activePresetId = id;
+  // Update button highlights
+  document.querySelectorAll('.agd-eq-preset').forEach(b => {
+    b.classList.toggle('active', b.dataset.preset === id);
+  });
+
+  // Animate sliders to target values
+  const sliders = document.querySelectorAll('.agd-eq-bands .agd-eq-sl');
+  const startVals = Array.from(sliders).map(s => parseFloat(s.value));
+  const startPreamp = parseFloat(document.getElementById('preampSl').value);
+  const targetVals = preset.bands;
+  const targetPreamp = preset.preamp;
+
+  const duration = 280;
+  const startT = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - startT) / duration);
+    // ease-out cubic
+    const e = 1 - Math.pow(1 - t, 3);
+    sliders.forEach((sl, i) => {
+      const v = startVals[i] + (targetVals[i] - startVals[i]) * e;
+      sl.value = v;
+      if (S.eqOn && eqNodes[i]) eqNodes[i].gain.value = v;
+    });
+    const pv = startPreamp + (targetPreamp - startPreamp) * e;
+    document.getElementById('preampSl').value = pv;
+    if (preampNode) preampNode.gain.value = Math.pow(10, pv / 20);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+
+  toast(`Preset: ${preset.name}`);
+}
+
+function clearActivePreset() {
+  if (activePresetId === null) return;
+  activePresetId = null;
+  document.querySelectorAll('.agd-eq-preset').forEach(b => b.classList.remove('active'));
+}
+
+function resetEQ() {
+  applyPreset('rock');
+}
+
+function buildPlaylist() {
+  const el=document.getElementById('plListEl');
+  el.innerHTML='';
+  if (PLAYLIST.length === 0) {
+    el.innerHTML = `<div class="agd-pl-empty"><strong>Playlist empty</strong>Click + ADD or drag-drop audio files here</div>`;
+    return;
+  }
+  PLAYLIST.forEach((t,i)=>{
+    const row=document.createElement('div');
+    let cls='agd-track';
+    if (i===S.track) cls += ' playing';
+    if (S.selected.has(i)) cls += ' selected';
+    row.className = cls;
+    row.innerHTML=`<span class="agd-tnum">${i+1}.</span><span class="agd-ttitle">${escapeHtml(t.title)}</span><span class="agd-tdur">${t.dur}</span><button class="agd-track-remove" title="Remove this track">✕</button>`;
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.agd-track-remove')) return;
+      if (e.shiftKey || e.metaKey || e.ctrlKey) {
+        if (S.selected.has(i)) S.selected.delete(i); else S.selected.add(i);
+        buildPlaylist();
+      } else {
+        S.selected.clear();
+        loadTrack(i, true);
+      }
+    });
+    row.querySelector('.agd-track-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeTrackAt(i);
+    });
+    el.appendChild(row);
+  });
+  // total time
+  const total = PLAYLIST.reduce((s,t)=>s+(t.secs||0),0);
+  document.getElementById('plTotalEl').textContent = fmt(total);
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function loadTrack(i, autoplay) {
+  if (PLAYLIST.length === 0) return;
+  S.track = ((i % PLAYLIST.length) + PLAYLIST.length) % PLAYLIST.length;
+  const t = PLAYLIST[S.track];
+  audio.src = t.src;
+  audio.load();
+  // populate display
+  const inner = document.getElementById('songNameInner');
+  inner.textContent = `${S.track+1}. ${t.title}`;
+  // Reset scrolling
+  const nameEl = document.getElementById('songNameEl');
+  nameEl.classList.remove('scrolling');
+  // Check for overflow after layout
+  setTimeout(() => {
+    if (inner.scrollWidth > nameEl.clientWidth + 4) {
+      inner.textContent = `${S.track+1}. ${t.title}     •     ${S.track+1}. ${t.title}     •     `;
+      nameEl.classList.add('scrolling');
+    }
+  }, 50);
+  document.getElementById('bitratePill').textContent = t.bitrate || '128';
+  document.getElementById('khzPill').textContent = t.sample || '44';
+  buildPlaylist();
+  if (autoplay) playAudio();
+  else updateUI();
+}
+
+function playAudio() {
+  if (PLAYLIST.length === 0) return;
+  if (!audio.src) loadTrack(0, false);
+  initAudioGraph();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  const doPlay = () => audio.play().then(() => { S.playing = true; }).catch(err => {
+    console.warn('Play failed:', err);
+    toast('Click to enable audio');
+  });
+  if (audio.readyState >= 2) {
+    doPlay();
+  } else {
+    audio.addEventListener('canplay', doPlay, { once: true });
+  }
+}
+
+function pauseAudio() {
+  audio.pause();
+  S.playing = false;
+}
+
+function stopAudio() {
+  audio.pause();
+  audio.currentTime = 0;
+  S.playing = false;
+  updateUI();
+}
+
+function nextTrack() {
+  if (PLAYLIST.length === 0) return;
+  let next;
+  if (S.shuffle) {
+    next = Math.floor(Math.random() * PLAYLIST.length);
+  } else {
+    next = (S.track + 1) % PLAYLIST.length;
+  }
+  loadTrack(next, true);
+}
+
+function prevTrack() {
+  if (PLAYLIST.length === 0) return;
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  loadTrack((S.track - 1 + PLAYLIST.length) % PLAYLIST.length, true);
+}
+
+audio.addEventListener('ended', () => {
+  if (S.repeat) {
+    audio.currentTime = 0;
+    audio.play();
+  } else {
+    nextTrack();
+  }
+});
+
+audio.addEventListener('loadedmetadata', () => {
+  if (PLAYLIST[S.track]) {
+    PLAYLIST[S.track].secs = audio.duration;
+    PLAYLIST[S.track].dur = fmt(audio.duration);
+    buildPlaylist();
+  }
+});
+
+function updateUI() {
+  if (!audio.src || PLAYLIST.length === 0) {
+    document.getElementById('timeEl').textContent = '0:00';
+    document.getElementById('progFillEl').style.width = '0%';
+    document.getElementById('progTimeEl').textContent = '0:00 / 0:00';
+    return;
+  }
+  const dur = audio.duration || PLAYLIST[S.track].secs || 1;
+  const cur = audio.currentTime || 0;
+  document.getElementById('timeEl').textContent = fmt(cur);
+  document.getElementById('progFillEl').style.width = ((cur/dur)*100) + '%';
+  document.getElementById('progTimeEl').textContent = fmt(cur) + ' / ' + fmt(dur);
+  document.getElementById('volFill').style.width = (audio.volume*100) + '%';
+
+}
+
+
+function animFrame() {
+  const bars = document.querySelectorAll('.agd-vbar');
+  if (analyser && S.playing) {
+    analyser.getByteFrequencyData(analyserData);
+    const bins = analyserData.length;
+    // Use only lower 60% of bins (covers most musical content) and bucket logarithmically
+    const usable = Math.floor(bins * 0.5);
+    bars.forEach((b, i) => {
+      // Logarithmic-ish bucketing for a nicer-looking spread
+      const ratio = (i + 1) / bars.length;
+      const startBin = Math.floor(Math.pow(ratio - (1/bars.length), 1.4) * usable);
+      const endBin = Math.max(startBin + 1, Math.floor(Math.pow(ratio, 1.4) * usable));
+      let max = 0;
+      for (let k = Math.max(0, startBin); k < endBin; k++) {
+        if (analyserData[k] > max) max = analyserData[k];
+      }
+      const v = max / 255;
+      const h = Math.max(2, Math.round(v * 28));
+      b.style.height = h + 'px';
+      const p = h / 28;
+      b.style.background = p > 0.85 ? '#ff8c00' : p > 0.6 ? '#ffd700' : '#2eff5e';
+      b.style.boxShadow = `0 0 ${Math.round(p*5)}px currentColor`;
+    });
+  } else {
+    bars.forEach(b => {
+      const cur = parseFloat(b.style.height) || 2;
+      const next = Math.max(2, cur * 0.8);
+      b.style.height = next + 'px';
+      b.style.boxShadow = 'none';
+    });
+  }
+  updateUI();
+  if (typeof drawCy === 'function') drawCy();
+  requestAnimationFrame(animFrame);
+}
+
+// Buttons
+document.getElementById('btnPlay').onclick  = playAudio;
+document.getElementById('btnPause').onclick = () => { if (audio.paused) playAudio(); else pauseAudio(); };
+document.getElementById('btnStop').onclick  = stopAudio;
+document.getElementById('btnNext').onclick  = nextTrack;
+document.getElementById('btnPrev').onclick  = prevTrack;
+document.getElementById('btnEject').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('plScrollUp').onclick   = () => document.getElementById('plListEl').scrollBy({ top: -40, behavior: 'smooth' });
+document.getElementById('plScrollDown').onclick = () => document.getElementById('plListEl').scrollBy({ top: 40, behavior: 'smooth' });
+
+// Sliders
+document.getElementById('progressEl').addEventListener('click', e => {
+  if (!audio.duration) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  audio.currentTime = pct * audio.duration;
+});
+document.getElementById('volTrack').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  audio.volume = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+});
+document.getElementById('balTrack').addEventListener('click', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const v = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  document.getElementById('balFill').style.width = (v*100) + '%';
+  // Note: stereo balance with WebAudio would need a StereoPannerNode chain; keeping visual only.
+});
+
+// Toggles
+function toggleEQ() {
+  S.eqVisible = !S.eqVisible;
+  document.getElementById('eqWin').style.display = S.eqVisible ? '' : 'none';
+  document.getElementById('tbEQ').classList.toggle('on', S.eqVisible);
+  // If hiding, also clear any minimized dock entry for it
+  if (!S.eqVisible) removeDockItem('eqWin');
+  else {
+    document.getElementById('eqWin').classList.remove('minimized');
+    removeDockItem('eqWin');
+  }
+}
+function togglePL() {
+  S.plVisible = !S.plVisible;
+  document.getElementById('plWin').style.display = S.plVisible ? '' : 'none';
+  document.getElementById('tbPL').classList.toggle('on', S.plVisible);
+  if (!S.plVisible) removeDockItem('plWin');
+  else {
+    document.getElementById('plWin').classList.remove('minimized');
+    removeDockItem('plWin');
+  }
+}
+
+// ── MINIMIZE / DOCK SYSTEM ──
+
+// Green window button: make the whole player bigger (as wide as fits), press again to go back
+let bigPlayer = false;
+function sizePlayer() {
+  const r = document.getElementById('agdRoot');
+  const z = bigPlayer ? Math.max(1, Math.min(1.5, (window.innerWidth - 32) / 340)) : 1;
+  r.style.zoom = z === 1 ? '' : String(z);
+  document.querySelectorAll('.agd-wbtn.max').forEach(b => {
+    if (!b.getAttribute('onclick').includes('Cy')) b.title = bigPlayer ? 'Back to normal size' : 'Make bigger';
+  });
+  if (typeof resizeCy === 'function') setTimeout(resizeCy, 50);
+}
+function toggleBigPlayer() { bigPlayer = !bigPlayer; sizePlayer(); }
+window.addEventListener('resize', () => { if (bigPlayer) sizePlayer(); });
+
+function minimizeWindow(winId, label) {
+  const win = document.getElementById(winId);
+  if (!win) return;
+  win.classList.add('minimized');
+
+  // Avoid duplicate dock entries
+  if (document.querySelector(`.agd-dock-item[data-win="${winId}"]`)) return;
+
+  const dock = document.getElementById('agdDock');
+  const item = document.createElement('div');
+  item.className = 'agd-dock-item';
+  item.dataset.win = winId;
+  item.title = `Restore ${label}`;
+  item.innerHTML = `
+    <span class="agd-dock-item-pulse"></span>
+    <span class="agd-dock-item-label">${label}</span>
+    <span class="agd-dock-restore">▲</span>
+  `;
+  item.addEventListener('click', () => restoreWindow(winId));
+  dock.appendChild(item);
+}
+
+function restoreWindow(winId) {
+  const win = document.getElementById(winId);
+  if (win) {
+    win.classList.remove('minimized');
+    // If the window was also "hidden" via toggle (e.g. CY), make sure it's visible
+    if (win.style.display === 'none') win.style.display = '';
+  }
+  // Sync the toggle button state if applicable
+  if (winId === 'eqWin') { S.eqVisible = true; document.getElementById('tbEQ').classList.add('on'); }
+  if (winId === 'plWin') { S.plVisible = true; document.getElementById('tbPL').classList.add('on'); }
+  if (winId === 'cyWin') { CY.visible = true; document.getElementById('tbCY').classList.add('on'); }
+
+  removeDockItem(winId);
+  // brief flash on the restored window
+  if (win) {
+    win.style.transition = 'box-shadow 0.4s';
+    win.style.boxShadow = '0 0 0 1px #000, 0 0 24px rgba(46,255,94,0.5), inset 0 1px 0 #4a5170';
+    setTimeout(() => { win.style.boxShadow = ''; }, 500);
+  }
+}
+
+function removeDockItem(winId) {
+  const item = document.querySelector(`.agd-dock-item[data-win="${winId}"]`);
+  if (item) item.remove();
+}
+
+function toggleShuffle() {
+  S.shuffle = !S.shuffle;
+  document.getElementById('tbShuf').classList.toggle('on', S.shuffle);
+  toast('Shuffle ' + (S.shuffle ? 'on' : 'off'));
+}
+function toggleRepeat() {
+  S.repeat = !S.repeat;
+  document.getElementById('tbRep').classList.toggle('on', S.repeat);
+  toast('Repeat ' + (S.repeat ? 'on' : 'off'));
+}
+function toggleEQOn() {
+  S.eqOn = !S.eqOn;
+  document.getElementById('eqOnBtn').classList.toggle('on', S.eqOn);
+  // Bypass EQ by setting all gains to 0 (for now)
+  if (eqNodes.length) {
+    eqNodes.forEach((node, i) => {
+      const sl = document.querySelector(`.agd-eq-sl[data-band="${i}"]`);
+      node.gain.value = S.eqOn && sl ? parseFloat(sl.value) : 0;
+    });
+  }
+}
+
+// File adding
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  addFiles(e.target.files);
+  e.target.value = '';
+});
+
+function addFiles(files) {
+  let added = 0;
+  for (const f of files) {
+    if (!f.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(f.name)) continue;
+    const url = URL.createObjectURL(f);
+    const title = f.name.replace(/\.[^.]+$/, '').replace(/[_]/g, ' ');
+    PLAYLIST.push({
+      title, dur: '...', secs: 0, src: url,
+      bitrate: 128, sample: 44
+    });
+    // Get duration async
+    const tmp = new Audio();
+    tmp.preload = 'metadata';
+    tmp.src = url;
+    tmp.addEventListener('loadedmetadata', () => {
+      const idx = PLAYLIST.findIndex(p => p.src === url);
+      if (idx >= 0) {
+        PLAYLIST[idx].secs = tmp.duration;
+        PLAYLIST[idx].dur = fmt(tmp.duration);
+        buildPlaylist();
+      }
+    });
+    added++;
+  }
+  buildPlaylist();
+  if (added > 0) toast(`Added ${added} track${added > 1 ? 's' : ''}`);
+}
+
+function removeSelected() {
+  if (S.selected.size === 0) {
+    toast('Click tracks to select first');
+    return;
+  }
+  const indices = [...S.selected].sort((a,b) => b-a);
+  let currentTrackRemoved = false;
+  indices.forEach(i => {
+    if (i === S.track) currentTrackRemoved = true;
+    URL.revokeObjectURL(PLAYLIST[i].src);
+    PLAYLIST.splice(i, 1);
+  });
+  S.selected.clear();
+  if (currentTrackRemoved) {
+    audio.pause();
+    audio.src = '';
+    S.playing = false;
+    if (PLAYLIST.length > 0) loadTrack(Math.min(S.track, PLAYLIST.length-1), false);
+  } else {
+    // Adjust current track index
+    S.track = Math.min(S.track, PLAYLIST.length-1);
+  }
+  buildPlaylist();
+  toast(`Removed ${indices.length} track${indices.length > 1 ? 's' : ''}`);
+}
+
+function removeTrackAt(i) {
+  if (i < 0 || i >= PLAYLIST.length) return;
+  const currentTrackRemoved = (i === S.track);
+  URL.revokeObjectURL(PLAYLIST[i].src);
+  PLAYLIST.splice(i, 1);
+
+  const shifted = new Set();
+  S.selected.forEach(s => { if (s !== i) shifted.add(s > i ? s - 1 : s); });
+  S.selected = shifted;
+
+  if (currentTrackRemoved) {
+    audio.pause();
+    audio.src = '';
+    S.playing = false;
+    if (PLAYLIST.length > 0) {
+      loadTrack(Math.min(S.track, PLAYLIST.length-1), false);
+    } else {
+      S.track = 0;
+      document.getElementById('songNameInner').textContent = 'No track loaded';
+    }
+  } else {
+    if (i < S.track) S.track -= 1;
+    S.track = Math.min(S.track, Math.max(PLAYLIST.length-1, 0));
+  }
+  buildPlaylist();
+  toast('Removed 1 track');
+}
+
+function selectAll() {
+  if (S.selected.size === PLAYLIST.length) {
+    S.selected.clear();
+  } else {
+    PLAYLIST.forEach((_, i) => S.selected.add(i));
+  }
+  buildPlaylist();
+}
+
+function clearPlaylist() {
+  if (PLAYLIST.length === 0) return;
+  if (!confirm('Clear all tracks?')) return;
+  PLAYLIST.forEach(t => URL.revokeObjectURL(t.src));
+  PLAYLIST.length = 0;
+  S.selected.clear();
+  audio.pause();
+  audio.src = '';
+  S.playing = false;
+  S.track = 0;
+  document.getElementById('songNameInner').textContent = 'No track loaded';
+  buildPlaylist();
+}
+
+// Drag and drop
+const root = document.getElementById('agdRoot');
+['dragenter','dragover'].forEach(ev => {
+  root.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    document.getElementById('plWin').classList.add('agd-drop-active');
+  });
+});
+['dragleave','drop'].forEach(ev => {
+  root.addEventListener(ev, e => {
+    e.preventDefault(); e.stopPropagation();
+    document.getElementById('plWin').classList.remove('agd-drop-active');
+  });
+});
+root.addEventListener('drop', e => {
+  if (e.dataTransfer && e.dataTransfer.files) {
+    addFiles(e.dataTransfer.files);
+  }
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); audio.paused ? playAudio() : pauseAudio(); }
+  if (e.code === 'ArrowRight' && e.shiftKey) nextTrack();
+  if (e.code === 'ArrowLeft' && e.shiftKey) prevTrack();
+});
+
+// Toast
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── CYMATICS ──
+const CY = {
+  canvas: null,
+  ctx: null,
+  mode: 'plasma',
+  sens: 0.6,
+  hue: 0.5, // 0=red, 0.5=emerald (default), 1=magenta
+  visible: true,
+  fullscreen: false,
+  freqData: null,
+  timeData: null,
+  t: 0,
+  W: 0, H: 0,
+  centroidHz: 0,
+};
+
+const CY_MODES = ['plasma','chladni','spectrum','interference','standing','lissajous','circular'];
+const CY_LABELS = {
+  plasma: 'SPARK NIGHT', chladni: 'VIBE JAM', spectrum: 'BUILD WEEK', interference: 'BUG HUNT', standing: 'CODE FREEZE', lissajous: 'SHIP IT', circular: 'EXHIBITION DAY'
+};
+
+function initCy() {
+  CY.canvas = document.getElementById('cyCanvas');
+  if (!CY.canvas) return;
+  CY.ctx = CY.canvas.getContext('2d');
+  resizeCy();
+  window.addEventListener('resize', resizeCy);
+
+  // Wire mode buttons
+  document.querySelectorAll('.agd-cy-mode').forEach(btn => {
+    btn.addEventListener('click', () => setCyMode(btn.dataset.mode));
+  });
+
+  // Sens & Hue sliders
+  bindCySlider('cySensTrack', 'cySensFill', v => CY.sens = v, 0.6);
+  bindCySlider('cyHueTrack', 'cyHueFill', v => CY.hue = v, 0.5);
+}
+
+function bindCySlider(trackId, fillId, setter, def) {
+  const track = document.getElementById(trackId);
+  const fill = document.getElementById(fillId);
+  if (!track) return;
+  track.addEventListener('click', e => {
+    const r = track.getBoundingClientRect();
+    const v = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    fill.style.width = (v*100) + '%';
+    setter(v);
+  });
+}
+
+function resizeCy() {
+  if (!CY.canvas) return;
+  const wrap = CY.canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  CY.canvas.width = w * dpr;
+  CY.canvas.height = h * dpr;
+  CY.ctx.setTransform(dpr,0,0,dpr,0,0);
+  CY.W = w; CY.H = h;
+}
+
+function setCyMode(mode) {
+  CY.mode = mode;
+  document.querySelectorAll('.agd-cy-mode').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  document.getElementById('cyModeLabel').textContent = CY_LABELS[mode] || mode.toUpperCase();
+}
+
+function toggleCy() {
+  CY.visible = !CY.visible;
+  document.getElementById('cyWin').style.display = CY.visible ? '' : 'none';
+  document.getElementById('tbCY').classList.toggle('on', CY.visible);
+  if (!CY.visible) removeDockItem('cyWin');
+  else {
+    document.getElementById('cyWin').classList.remove('minimized');
+    removeDockItem('cyWin');
+  }
+}
+
+function toggleCyFullscreen() {
+  const body = document.getElementById('cyBody');
+  const fsControls = document.getElementById('cyFsControls');
+  CY.fullscreen = !CY.fullscreen;
+  body.classList.toggle('fullscreen', CY.fullscreen);
+
+  if (CY.fullscreen) {
+    // Move controls into the canvas overlay
+    fsControls.innerHTML = '';
+    CY_MODES.forEach(m => {
+      const btn = document.createElement('button');
+      btn.className = 'agd-cy-mode' + (m === CY.mode ? ' active' : '');
+      btn.dataset.mode = m;
+      btn.textContent = CY_LABELS[m];
+      btn.addEventListener('click', () => {
+        setCyMode(m);
+        // Update fs button states
+        fsControls.querySelectorAll('.agd-cy-mode').forEach(b => {
+          b.classList.toggle('active', b.dataset.mode === m);
+        });
+      });
+      fsControls.appendChild(btn);
+    });
+    const exitBtn = document.createElement('button');
+    exitBtn.className = 'agd-cy-fs';
+    exitBtn.textContent = '✕ EXIT';
+    exitBtn.onclick = toggleCyFullscreen;
+    fsControls.appendChild(exitBtn);
+    fsControls.style.display = 'flex';
+
+    // Try real browser fullscreen too
+    if (body.requestFullscreen) {
+      body.requestFullscreen().catch(() => {});
+    }
+  } else {
+    fsControls.style.display = 'none';
+    fsControls.innerHTML = '';
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }
+
+  // Resize after layout settles
+  setTimeout(resizeCy, 50);
+}
+
+// Listen for ESC out of native fullscreen
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && CY.fullscreen) {
+    CY.fullscreen = false;
+    document.getElementById('cyBody').classList.remove('fullscreen');
+    document.getElementById('cyFsControls').style.display = 'none';
+    setTimeout(resizeCy, 50);
+  }
+});
+
+// HSL helper for hue cycling
+function cyColor(alpha = 1, offset = 0) {
+  // hue slider: 0..1 cycles around the wheel; default 0.5 = emerald (~135°)
+  // map slider so 0.5 -> 135°, 0 -> -45° (red), 1 -> 315° (magenta)
+  const baseHue = 135;
+  const h = (baseHue + (CY.hue - 0.5) * 360 + offset + 720) % 360;
+  return `hsla(${h}, 88%, 55%, ${alpha})`;
+}
+
+function getAudioFeatures() {
+  if (!analyser) {
+    return { bass: 0, mid: 0, hi: 0, peak: 0, rms: 0, freq: null, time: null };
+  }
+  const bins = analyser.frequencyBinCount;
+  if (!CY.freqData || CY.freqData.length !== bins) {
+    CY.freqData = new Uint8Array(bins);
+    CY.timeData = new Uint8Array(analyser.fftSize);
+  }
+  analyser.getByteFrequencyData(CY.freqData);
+  analyser.getByteTimeDomainData(CY.timeData);
+
+  const fd = CY.freqData;
+  const n = fd.length;
+  let bass = 0, mid = 0, hi = 0, total = 0, weight = 0;
+  const bassEnd = Math.floor(n * 0.08);
+  const midEnd = Math.floor(n * 0.35);
+  for (let i = 0; i < bassEnd; i++) bass += fd[i];
+  for (let i = bassEnd; i < midEnd; i++) mid += fd[i];
+  for (let i = midEnd; i < n; i++) hi += fd[i];
+  bass /= bassEnd * 255;
+  mid /= (midEnd - bassEnd) * 255;
+  hi /= (n - midEnd) * 255;
+
+  let peak = 0;
+  for (let i = 0; i < n; i++) {
+    if (fd[i] > peak) peak = fd[i];
+    total += fd[i];
+    weight += i * fd[i];
+  }
+  const centroidBin = total > 0 ? weight / total : 0;
+  const sampleRate = audioCtx ? audioCtx.sampleRate : 44100;
+  const centroidHz = centroidBin * sampleRate / analyser.fftSize;
+  CY.centroidHz = CY.centroidHz * 0.85 + centroidHz * 0.15;
+
+  // RMS from time domain
+  let rms = 0;
+  for (let i = 0; i < n; i++) {
+    const v = (CY.timeData[i] - 128) / 128;
+    rms += v * v;
+  }
+  rms = Math.sqrt(rms / n);
+
+  return { bass, mid, hi, peak: peak/255, rms, freq: fd, time: CY.timeData };
+}
+
+function drawCy() {
+  if (!CY.ctx) return;
+  const ctx = CY.ctx;
+  const W = CY.W, H = CY.H;
+  if (W === 0 || H === 0) return;
+
+  // Fade trail per mode
+  const fadeAlpha = CY.mode === 'plasma' ? 1.0 : CY.mode === 'spectrum' ? 0.55 : CY.mode === 'circular' ? 0.22 : 0.18;
+  ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
+  ctx.fillRect(0, 0, W, H);
+
+  const f = getAudioFeatures();
+  const sens = CY.sens * 2 + 0.4; // 0.4..2.4
+  CY.t += 0.016 * (1 + f.mid * 1.5);
+
+  switch (CY.mode) {
+    case 'plasma':        drawPlasma(ctx, W, H, f, sens); break;
+    case 'spectrum':      drawSpectrum(ctx, W, H, f, sens); break;
+    case 'circular':      drawCircular(ctx, W, H, f, sens); break;
+    case 'lissajous':     drawLissajous(ctx, W, H, f, sens); break;
+    case 'standing':      drawStanding(ctx, W, H, f, sens); break;
+    case 'interference':  drawInterference(ctx, W, H, f, sens); break;
+    case 'chladni':       drawChladni(ctx, W, H, f, sens); break;
+  }
+
+  // Update Hz label
+  const hzEl = document.getElementById('cyHzLabel');
+  if (hzEl) {
+    if (S.playing && CY.centroidHz > 0) {
+      hzEl.textContent = `${Math.round(CY.centroidHz)} HZ · RMS ${(f.rms*100).toFixed(0)}`;
+    } else {
+      hzEl.textContent = '0 HZ';
+    }
+  }
+}
+
+// ── Chladni plate: nodal lines from sin(mπx)sin(nπy) - sin(nπx)sin(mπy) ──
+function drawChladni(ctx, W, H, f, sens) {
+  const m = 3 + Math.floor(f.bass * 6 * sens);
+  const n = 2 + Math.floor(f.hi * 6 * sens);
+  const step = 4;
+  const phase = CY.t * 0.5;
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      const u = x / W, v = y / H;
+      const val = Math.sin(m * Math.PI * u + phase) * Math.sin(n * Math.PI * v) -
+                  Math.sin(n * Math.PI * u) * Math.sin(m * Math.PI * v + phase);
+      const a = Math.abs(val);
+      if (a < 0.08 + f.peak * 0.1) {
+        const intensity = 1 - a / 0.18;
+        ctx.fillStyle = cyColor(0.85 * intensity, val * 30);
+        ctx.fillRect(x, y, step, step);
+      }
+    }
+  }
+}
+
+// ── Lissajous: x = sin(at), y = sin(bt + δ) ──
+function drawLissajous(ctx, W, H, f, sens) {
+  const cx = W/2, cy = H/2;
+  const r = Math.min(W, H) * 0.4;
+  const a = 2 + Math.floor(f.bass * 5 * sens);
+  const b = 3 + Math.floor(f.hi * 5 * sens);
+  const delta = CY.t * 0.5;
+  ctx.lineWidth = 1 + f.peak * 2;
+  ctx.strokeStyle = cyColor(0.9);
+  ctx.shadowColor = cyColor(1);
+  ctx.shadowBlur = 6 + f.peak * 12;
+  ctx.beginPath();
+  const steps = 800;
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * Math.PI * 2;
+    const x = cx + r * Math.sin(a * t + delta) * (1 + f.bass * 0.2);
+    const y = cy + r * Math.sin(b * t) * (1 + f.bass * 0.2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// ── iTunes radial: mirrored rainbow bars radiating from center ──
+function drawCircular(ctx, W, H, f, sens) {
+  if (!f.freq) return;
+  const cx = W / 2, cy = H / 2;
+  const minDim = Math.min(W, H);
+  const baseR = minDim * 0.16;
+  const maxBar = minDim * 0.34;
+  const fd = f.freq;
+  const bars = 180;
+  const usableBins = Math.floor(fd.length * 0.7);
+  const rot = CY.t * 0.08; // slow drift rotation
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot);
+
+  for (let i = 0; i < bars; i++) {
+    // Log bin mapping
+    const t0 = Math.pow(usableBins, i / bars);
+    const t1 = Math.pow(usableBins, (i + 1) / bars);
+    const start = Math.max(1, Math.floor(t0));
+    const end   = Math.max(start + 1, Math.ceil(t1));
+    let sum = 0, cnt = 0;
+    for (let j = start; j < end && j < fd.length; j++) { sum += fd[j]; cnt++; }
+    const v = Math.min(1, (cnt > 0 ? sum / cnt : 0) / 255 * sens * 1.35);
+    const barLen = v * maxBar;
+
+    const ang = (i / bars) * Math.PI * 2 - Math.PI / 2;
+    // Full rainbow by angle position
+    const hue = (i / bars) * 360;
+    const sat = 88 + v * 12;
+    const light = 40 + v * 30;
+    const col = `hsla(${hue}, ${sat}%, ${light}%, ${0.5 + v * 0.5})`;
+    const colGlow = `hsla(${hue}, 100%, 70%, ${v * 0.8})`;
+
+    const lw = Math.max(1, (2 * Math.PI * baseR) / bars * 0.55);
+    ctx.lineWidth = lw;
+    ctx.shadowColor = colGlow;
+    ctx.shadowBlur  = v > 0.3 ? 8 + v * 20 : 0;
+    ctx.strokeStyle = col;
+
+    // Outer bar (away from center)
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(ang) * baseR, Math.sin(ang) * baseR);
+    ctx.lineTo(Math.cos(ang) * (baseR + barLen), Math.sin(ang) * (baseR + barLen));
+    ctx.stroke();
+
+    // Inner mirror bar (toward center, shorter)
+    const innerLen = barLen * 0.45;
+    ctx.strokeStyle = `hsla(${hue}, ${sat}%, ${light}%, ${(0.3 + v * 0.3)})`;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(ang) * baseR, Math.sin(ang) * baseR);
+    ctx.lineTo(Math.cos(ang) * (baseR - innerLen), Math.sin(ang) * (baseR - innerLen));
+    ctx.stroke();
+  }
+
+  ctx.shadowBlur = 0;
+
+  // Pulsing center ring
+  const pulseR = baseR * (0.82 + f.bass * 0.55 * sens);
+  ctx.beginPath();
+  ctx.arc(0, 0, pulseR, 0, Math.PI * 2);
+  const ringHue = (CY.t * 40) % 360;
+  ctx.strokeStyle = `hsla(${ringHue}, 100%, 65%, ${0.6 + f.bass * 0.4})`;
+  ctx.lineWidth = 1.5 + f.peak * 4;
+  ctx.shadowColor = `hsla(${ringHue}, 100%, 70%, 1)`;
+  ctx.shadowBlur  = 14 + f.peak * 24;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Outer ripple rings on beat
+  for (let i = 0; i < 4; i++) {
+    const phase = ((i / 4) + CY.t * 0.1) % 1;
+    const r = baseR + maxBar * phase * 1.5;
+    const alpha = (1 - phase) * 0.28 * (0.4 + f.peak);
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `hsla(${(ringHue + i * 50) % 360}, 90%, 60%, ${alpha})`;
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// ── Standing wave: classic oscilloscope view of waveform ──
+function drawStanding(ctx, W, H, f, sens) {
+  if (!f.time) return;
+  const td = f.time;
+  const n = td.length;
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = cyColor(0.95);
+  ctx.shadowColor = cyColor(1);
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const v = (td[i] - 128) / 128;
+    const x = (i / (n - 1)) * W;
+    const y = H/2 + v * (H/2 * 0.8) * (1 + sens * 0.3);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Reflection (standing wave illusion)
+  ctx.strokeStyle = cyColor(0.4, 60);
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const v = (td[i] - 128) / 128;
+    const x = (i / (n - 1)) * W;
+    const y = H/2 - v * (H/2 * 0.8) * (1 + sens * 0.3);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Center line
+  ctx.strokeStyle = cyColor(0.15);
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);
+  ctx.stroke();
+}
+
+// ── Interference: two-source wave interference pattern ──
+function drawInterference(ctx, W, H, f, sens) {
+  const k1 = 0.04 + f.bass * 0.08 * sens;
+  const k2 = 0.04 + f.hi * 0.08 * sens;
+  const t = CY.t * 2;
+  const sep = 0.3;
+  const cx1 = W * (0.5 - sep * (0.5 + f.bass * 0.3));
+  const cx2 = W * (0.5 + sep * (0.5 + f.bass * 0.3));
+  const cy = H / 2;
+  const step = 3;
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      const d1 = Math.hypot(x - cx1, y - cy);
+      const d2 = Math.hypot(x - cx2, y - cy);
+      const w = Math.sin(k1 * d1 - t) + Math.sin(k2 * d2 - t);
+      const v = w / 2;
+      if (Math.abs(v) > 0.55) {
+        const sign = v > 0 ? 1 : -1;
+        const intensity = (Math.abs(v) - 0.55) / 0.45;
+        ctx.fillStyle = cyColor(0.8 * intensity, sign * 60);
+        ctx.fillRect(x, y, step, step);
+      }
+    }
+  }
+}
+
+// ── iTunes-style rainbow spectrum: log bars, vertical gradient, peak hold ──
+const _specPeaks = [];
+const _specPeakVel = [];
+function itunesBarColor(pos, v, alpha) {
+  // pos 0..1 (bar position left to right), v 0..1 (bar height ratio)
+  // Bottom of bar: deep blue. Middle: cyan/green. Top: yellow→orange→red.
+  // Across bars: bass=indigo, treble=red (like classic iTunes)
+  const baseHue = 260 - pos * 220; // 260° (indigo) at bass → 40° (gold) at treble
+  const vertHue = baseHue - v * 80;  // shifts toward red at peaks
+  const sat = 90 + v * 10;
+  const light = 40 + v * 25;
+  return `hsla(${(vertHue + 360) % 360}, ${sat}%, ${light}%, ${alpha})`;
+}
+function drawSpectrum(ctx, W, H, f, sens) {
+  if (!f.freq) return;
+  const fd = f.freq;
+  const bars = 72;
+  const usableBins = Math.floor(fd.length * 0.75);
+  const logMin = Math.log2(2);
+  const logMax = Math.log2(usableBins);
+  const barW = W / bars;
+  const gap = Math.max(0.8, barW * 0.12);
+  const floorY = H * 0.88;
+  const maxBarH = floorY * 0.95;
+
+  if (_specPeaks.length !== bars) {
+    for (let i = 0; i < bars; i++) { _specPeaks[i] = 0; _specPeakVel[i] = 0; }
+  }
+
+  for (let i = 0; i < bars; i++) {
+    const t0 = Math.pow(2, logMin + (i / bars) * (logMax - logMin));
+    const t1 = Math.pow(2, logMin + ((i + 1) / bars) * (logMax - logMin));
+    const start = Math.floor(t0);
+    const end = Math.max(start + 1, Math.ceil(t1));
+    let sum = 0, cnt = 0;
+    for (let j = start; j < end && j < fd.length; j++) { sum += fd[j]; cnt++; }
+    const v = Math.min(1, (cnt > 0 ? sum / cnt : 0) / 255 * sens * 1.4);
+    const barH = v * maxBarH;
+    const pos = i / (bars - 1);
+    const x = i * barW;
+
+    // Peak hold
+    if (barH >= _specPeaks[i]) {
+      _specPeaks[i] = barH; _specPeakVel[i] = 0;
+    } else {
+      _specPeakVel[i] = Math.min(_specPeakVel[i] + 0.28, 6);
+      _specPeaks[i] = Math.max(0, _specPeaks[i] - _specPeakVel[i]);
+    }
+
+    if (barH < 1) continue;
+
+    // Vertical gradient: bottom color → top color
+    const grad = ctx.createLinearGradient(0, floorY, 0, floorY - barH);
+    grad.addColorStop(0,   itunesBarColor(pos, 0,   0.5));
+    grad.addColorStop(0.5, itunesBarColor(pos, 0.5, 0.85));
+    grad.addColorStop(1,   itunesBarColor(pos, 1,   1));
+    ctx.shadowColor = itunesBarColor(pos, 1, 0.9);
+    ctx.shadowBlur  = 6 + v * 18;
+    ctx.fillStyle   = grad;
+    ctx.fillRect(x + gap, floorY - barH, barW - gap * 2, barH);
+
+    // Rounded cap (bright top)
+    const capR = (barW - gap * 2) / 2;
+    ctx.beginPath();
+    ctx.arc(x + barW / 2, floorY - barH, capR, Math.PI, 0);
+    ctx.closePath();
+    ctx.fillStyle = itunesBarColor(pos, 1, 1);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // Mirror reflection below floor
+    const refH = barH * 0.3;
+    const gradRef = ctx.createLinearGradient(0, floorY, 0, floorY + refH);
+    gradRef.addColorStop(0, itunesBarColor(pos, 0.5, 0.25));
+    gradRef.addColorStop(1, itunesBarColor(pos, 0,   0));
+    ctx.fillStyle = gradRef;
+    ctx.fillRect(x + gap, floorY, barW - gap * 2, refH);
+
+    // Peak hold marker
+    if (_specPeaks[i] > 4) {
+      ctx.fillStyle = itunesBarColor(pos, 1, 0.9);
+      ctx.shadowColor = itunesBarColor(pos, 1, 1);
+      ctx.shadowBlur = 8;
+      ctx.fillRect(x + gap, floorY - _specPeaks[i] - 2, barW - gap * 2, 2.5);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // Floor line
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(0, floorY); ctx.lineTo(W, floorY); ctx.stroke();
+}
+
+// ── iTunes plasma: sine-wave interference field, beat-reactive ──
+function drawPlasma(ctx, W, H, f, sens) {
+  const t = CY.t;
+  const energy  = 0.6 + f.rms  * 2.5 * sens;
+  const bassWarp = 1 + f.bass * 3 * sens;
+  const hiFreq  = 0.03 + f.hi * 0.04 * sens;
+  const step = 7; // pixel block — bigger = faster but chunkier
+
+  for (let py = 0; py < H; py += step) {
+    for (let px = 0; px < W; px += step) {
+      const nx = (px / W) * 2 - 1;
+      const ny = (py / H) * 2 - 1;
+      const dist = Math.sqrt(nx * nx + ny * ny);
+
+      // Four sine waves interfering — iTunes milkdrop feel
+      const v1 = Math.sin(nx * 2.8 * bassWarp + t * 1.1);
+      const v2 = Math.sin(ny * 2.8           + t * 0.85 + 1.2);
+      const v3 = Math.sin(dist * 5.5         - t * 2.2);
+      const v4 = Math.sin((nx * 0.7 + ny * 1.3) * 3 + t * 0.6);
+      const v5 = Math.sin(Math.sqrt(Math.pow(nx - Math.sin(t * 0.7) * 0.4, 2) +
+                                    Math.pow(ny - Math.cos(t * 0.5) * 0.4, 2)) * 7 - t * 2);
+
+      const val = (v1 + v2 + v3 + v4 + v5) / 5; // -1..1
+
+      // Map to hue — full rainbow sweep over time
+      const hue = ((val + 1) / 2 * 300 + t * 25 + (CY.hue - 0.5) * 200 + 360) % 360;
+      const sat = 90 + f.mid * 10;
+      const light = Math.max(8, 22 + energy * 22 + val * 15);
+      const alpha = 0.82 + f.peak * 0.18;
+
+      ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+      ctx.fillRect(px, py, step, step);
+    }
+  }
+
+  // Beat flash — white center burst on bass hit
+  if (f.bass > 0.7 * sens) {
+    const flashR = Math.min(W, H) * 0.15 * f.bass;
+    const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, flashR);
+    grad.addColorStop(0, `rgba(255,255,255,${(f.bass - 0.7) * 0.6})`);
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// Init cymatics after DOM ready
+initCy();
+
+// Init
+buildViz();
+buildEQ();
+buildEQPresets();
+applyPreset('rock');
+buildPlaylist();
+loadTrack(0, false);
+animFrame();
+</script>
+
+<!-- ── JUNGLE MEETS SEA: paper-cut scene behind the player ──
+     Hecho kit only. Add ?bg=none to the URL to keep the old transparent
+     background when embedding the player on another page. -->
+<div id="hxScene" aria-hidden="true">
+  <svg id="hxSvg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice">
+    <defs>
+      <filter id="hxPaper" x="-10%" y="-10%" width="120%" height="130%">
+        <feDropShadow dx="0" dy="6" stdDeviation="0" flood-color="#0B0F0A" flood-opacity="0.55"/>
+      </filter>
+      <filter id="hxGlow" x="-200%" y="-200%" width="500%" height="500%">
+        <feGaussianBlur stdDeviation="3"/>
+      </filter>
+    </defs>
+    <g id="hxStars"></g>
+    <g id="hxSunWrap"><g id="hxSun"></g></g>
+    <g id="hxHills" filter="url(#hxPaper)"></g>
+    <g id="hxSea"></g>
+    <g id="hxGlints"></g>
+    <g id="hxPalms" filter="url(#hxPaper)"></g>
+    <g id="hxLeaves" filter="url(#hxPaper)"></g>
+    <g id="hxFlies"></g>
+  </svg>
+  <svg id="hxGrain" width="100%" height="100%">
+    <filter id="hxNoise"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0.957  0 0 0 0 0.941  0 0 0 0 0.894  0 0 0 1.6 -0.55"/></filter>
+    <rect width="100%" height="100%" filter="url(#hxNoise)"/>
+  </svg>
+</div>
+<script>
+(function () {
+  if (/[?&]bg=none\b/.test(location.search)) { document.getElementById('hxScene').remove(); return; }
+  document.body.classList.add('hx-has-scene');
+
+  // Jungle, sea, sun and fireflies. Set to true to bring the scene back;
+  // false leaves a plain navy background behind the player and the phrases.
+  const SHOW_JUNGLE = false;
+  if (!SHOW_JUNGLE) { document.getElementById('hxSvg').remove(); return; }
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const K = { night: '#0E1A2E', dark: '#1C241B', deep: '#121811', mid: '#243022', moss: '#2A3628', fern: '#3A4A37',
+              light: '#F4F0E4', bold: '#F1CC4F', teal: '#16BEAE', green: '#86C746' };
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  const $ = (id) => document.getElementById(id);
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const HORIZON = 640;
+
+  // Stars: a few cream pin-pricks
+  for (let i = 0; i < 46; i++) {
+    el('circle', { cx: rnd() * 1600, cy: rnd() * 420, r: 0.8 + rnd() * 1.6, fill: K.light,
+      class: 'hx-star', style: `animation-delay:${(rnd() * 5).toFixed(2)}s` }, $('hxStars'));
+  }
+
+  // Sun: yellow disc with cut-paper rings and stitched rays
+  const sun = $('hxSun');
+  [210, 172, 140].forEach((r, i) => el('circle', { cx: 1060, cy: HORIZON, r, fill: 'none',
+    stroke: i ? K.bold : K.light, 'stroke-opacity': 0.18 + i * 0.12, 'stroke-width': 2,
+    'stroke-dasharray': i === 1 ? '7 9' : 'none' }, sun));
+  el('circle', { cx: 1060, cy: HORIZON, r: 112, fill: K.bold }, sun);
+  el('circle', { cx: 1060, cy: HORIZON, r: 92, fill: 'none', stroke: K.dark, 'stroke-opacity': 0.25,
+    'stroke-width': 2, 'stroke-dasharray': '5 7' }, sun);
+
+  // Hills of the peninsula on the horizon
+  el('path', { d: 'M0 650 C120 560 220 540 330 590 C410 520 520 500 610 575 C680 545 760 560 820 600 L840 660 L0 660 Z', fill: K.moss }, $('hxHills'));
+  el('path', { d: 'M1300 660 C1360 600 1450 585 1520 610 C1560 590 1590 595 1600 600 L1600 660 Z', fill: K.mid }, $('hxHills'));
+
+  // Sea: wave bands drifting at different speeds, stitched foam on each crest
+  const wave = (y, amp, len) => {
+    let d = `M0 ${y} Q ${len / 4} ${y - amp} ${len / 2} ${y}`;
+    for (let x = len; x <= 3200; x += len / 2) d += ` T ${x} ${y}`;
+    return d;
+  };
+  const BANDS = [
+    { y: 660, amp: 8,  len: 200, op: 0.22, speed: 38, dir: 1 },
+    { y: 712, amp: 12, len: 320, op: 0.38, speed: 30, dir: -1 },
+    { y: 776, amp: 16, len: 400, op: 0.56, speed: 24, dir: 1 },
+    { y: 852, amp: 20, len: 320, op: 0.78, speed: 18, dir: -1 },
+    { y: 934, amp: 22, len: 400, op: 1,    speed: 13, dir: 1 },
+  ];
+  BANDS.forEach((b, i) => {
+    const g = el('g', { class: 'hx-wave', style: `animation-duration:${b.speed}s;animation-direction:${b.dir > 0 ? 'normal' : 'reverse'}` }, $('hxSea'));
+    const crest = wave(b.y, b.amp, b.len);
+    el('path', { d: crest + ' L3200 1000 L0 1000 Z', fill: K.night }, g);
+    el('path', { d: crest + ' L3200 1000 L0 1000 Z', fill: K.teal, 'fill-opacity': b.op }, g);
+    el('path', { d: crest, fill: 'none', stroke: K.light, 'stroke-opacity': 0.25 + i * 0.1,
+      'stroke-width': 2.2, 'stroke-dasharray': '10 9', 'stroke-linecap': 'round' }, g);
+  });
+
+  // Sun glints on the water
+  for (let i = 0; i < 16; i++) {
+    const y = HORIZON + 22 + i * 15, w = 70 - i * 3 + rnd() * 30;
+    el('rect', { x: 1060 - w / 2 + (rnd() - 0.5) * 40, y, width: w, height: 3, rx: 1.5, fill: K.bold,
+      class: 'hx-glint', style: `animation-delay:${(rnd() * 3).toFixed(2)}s` }, $('hxGlints'));
+  }
+
+  // Palms: stitched trunks and swaying fronds, built from leaflets
+  function frond(parent, x, y, ang, len, droop, color) {
+    const g = el('g', { class: 'hx-sway', style: `transform-origin:${x}px ${y}px;animation-duration:${(5 + rnd() * 3).toFixed(2)}s;animation-delay:-${(rnd() * 4).toFixed(2)}s` }, parent);
+    const a = ang * Math.PI / 180;
+    const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len + droop;
+    const cx = x + Math.cos(a) * len * 0.55, cy = y + Math.sin(a) * len * 0.55 - droop * 0.35;
+    const P = (t) => [ (1 - t) * (1 - t) * x + 2 * (1 - t) * t * cx + t * t * ex,
+                       (1 - t) * (1 - t) * y + 2 * (1 - t) * t * cy + t * t * ey ];
+    let d = '';
+    for (let i = 1; i <= 16; i++) {
+      const t = i / 17, [px, py] = P(t), [qx, qy] = P(t + 0.02);
+      const tang = Math.atan2(qy - py, qx - px), l = len * 0.36 * Math.sin(Math.PI * (0.25 + t * 0.75));
+      for (const side of [-1, 1]) {
+        const la = tang + side * 1.05 + 0.35;
+        const tx = px + Math.cos(la) * l, ty = py + Math.sin(la) * l + l * 0.25;
+        const [bx, by] = P(t + 0.045);
+        d += `M${px.toFixed(1)} ${py.toFixed(1)} Q${((px + tx) / 2 + side * 4).toFixed(1)} ${((py + ty) / 2 - 6).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} Q${((bx + tx) / 2).toFixed(1)} ${((by + ty) / 2 + 4).toFixed(1)} ${bx.toFixed(1)} ${by.toFixed(1)} Z`;
+      }
+    }
+    el('path', { d, fill: color }, g);
+    el('path', { d: `M${x} ${y} Q${cx} ${cy} ${ex} ${ey}`, fill: 'none', stroke: K.dark, 'stroke-width': 3, 'stroke-opacity': 0.6 }, g);
+  }
+  function palm(x0, y0, x1, y1, bend, scale, color) {
+    const g = el('g', {}, $('hxPalms'));
+    const mx = (x0 + x1) / 2 + bend, my = (y0 + y1) / 2;
+    el('path', { d: `M${x0 - 16 * scale} ${y0} Q${mx - 9 * scale} ${my} ${x1 - 6 * scale} ${y1} L${x1 + 6 * scale} ${y1} Q${mx + 9 * scale} ${my} ${x0 + 16 * scale} ${y0} Z`, fill: K.fern }, g);
+    for (let t = 0.08; t < 0.97; t += 0.07) {
+      const px = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * mx + t * t * x1;
+      const py = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * my + t * t * y1;
+      const w = (16 - 10 * t) * scale;
+      el('path', { d: `M${px - w} ${py} q${w} ${5 * scale} ${w * 2} 0`, fill: 'none', stroke: K.dark, 'stroke-width': 2, 'stroke-dasharray': '4 4' }, g);
+    }
+    const crown = el('g', { class: 'hx-crown' }, g);
+    [[-160, 0.95], [-125, 1.05], [-95, 0.8], [-60, 1.05], [-25, 0.95], [10, 0.85], [175, 0.8], [-200, 0.7]]
+      .forEach(([ang, k], i) => frond(crown, x1, y1, ang, 190 * scale * k, 70 * scale * k, i % 2 ? color : K.green));
+    el('circle', { cx: x1 - 8 * scale, cy: y1 + 8 * scale, r: 9 * scale, fill: K.fern }, crown);
+    el('circle', { cx: x1 + 8 * scale, cy: y1 + 10 * scale, r: 8 * scale, fill: K.moss }, crown);
+  }
+  palm(120, 1010, 300, 330, -60, 1.0, 'rgba(134,199,70,0.62)');
+  palm(30, 1010, 90, 470, 40, 0.8, K.green);
+  palm(1530, 1010, 1420, 420, 50, 0.85, 'rgba(134,199,70,0.62)');
+
+  // Foreground jungle: big stitched leaves in the corners
+  function leaf(x, y, ang, len, wid, color, vein) {
+    const g = el('g', { class: 'hx-sway hx-leaf', style: `transform-origin:${x}px ${y}px;animation-duration:${(6 + rnd() * 3).toFixed(2)}s;animation-delay:-${(rnd() * 5).toFixed(2)}s` }, $('hxLeaves'));
+    const inner = el('g', { transform: `translate(${x} ${y}) rotate(${ang})` }, g);
+    el('path', { d: `M0 0 C ${len * 0.25} ${-wid} ${len * 0.75} ${-wid * 0.9} ${len} 0 C ${len * 0.75} ${wid * 0.9} ${len * 0.25} ${wid} 0 0 Z`, fill: color }, inner);
+    el('path', { d: `M4 0 L${len - 12} 0`, stroke: vein, 'stroke-width': 2.5, 'stroke-dasharray': '8 6', 'stroke-linecap': 'round' }, inner);
+    for (let t = 0.18; t < 0.9; t += 0.12) {
+      const vx = len * t;
+      el('path', { d: `M${vx} 0 L${vx + len * 0.09} ${-wid * 0.62}  M${vx} 0 L${vx + len * 0.09} ${wid * 0.62}`, stroke: K.dark, 'stroke-opacity': 0.35, 'stroke-width': 2 }, inner);
+    }
+  }
+  leaf(-30, 1020, -62, 330, 70, K.mid, K.green);
+  leaf(-40, 980, -30, 300, 62, K.green, K.light);
+  leaf(40, 1030, -80, 260, 55, 'rgba(134,199,70,0.62)', K.light);
+  leaf(1640, 1020, -118, 340, 72, K.mid, K.green);
+  leaf(1650, 960, -150, 300, 62, K.green, K.light);
+  leaf(1560, 1040, -100, 250, 52, 'rgba(134,199,70,0.62)', K.light);
+  leaf(-20, 760, -12, 210, 44, K.moss, K.green);
+  leaf(1620, 720, -170, 220, 46, K.moss, K.green);
+
+  // Fireflies (luciérnagas) drifting through the jungle
+  for (let i = 0; i < 34; i++) {
+    const left = rnd() < 0.5;
+    const x = left ? 30 + rnd() * 380 : 1190 + rnd() * 380, y = 360 + rnd() * 520;
+    const g = el('g', { class: 'hx-fly', style: `--dx:${((rnd() - 0.5) * 80).toFixed(0)}px;--dy:${(-20 - rnd() * 60).toFixed(0)}px;animation-duration:${(6 + rnd() * 6).toFixed(2)}s;animation-delay:-${(rnd() * 8).toFixed(2)}s` }, $('hxFlies'));
+    el('circle', { cx: x, cy: y, r: 6, fill: K.bold, opacity: 0.45, filter: 'url(#hxGlow)' }, g);
+    el('circle', { cx: x, cy: y, r: 2.2, fill: K.bold }, g);
+  }
+
+  // The scene breathes with the bass when music plays
+  const sunWrap = $('hxSunWrap'), sea = $('hxSea'), glints = $('hxGlints');
+  let level = 0;
+  function pulse() {
+    let target = 0;
+    try {
+      if (typeof analyser !== 'undefined' && analyser && !document.getElementById('audioEl').paused) {
+        const d = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(d);
+        let sum = 0; for (let i = 0; i < 12; i++) sum += d[i];
+        target = Math.max(0, (sum / 12 / 255 - 0.35) / 0.65);
+      }
+    } catch (e) {}
+    level += (target - level) * 0.18;
+    const s = 1 + level * 0.07;
+    sunWrap.setAttribute('transform', `translate(1060 ${HORIZON}) scale(${s.toFixed(3)}) translate(-1060 -${HORIZON})`);
+    sea.setAttribute('transform', `translate(0 ${(-level * 10).toFixed(2)})`);
+    glints.setAttribute('opacity', (0.55 + level * 0.45).toFixed(2));
+    document.documentElement.style.setProperty('--hx-beat', level.toFixed(3));
+    requestAnimationFrame(pulse);
+  }
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(pulse);
+})();
+</script>
+<div id="hxWords" aria-live="off"><div class="hx-line" id="hxLine"></div></div>
+<script>
+(function () {
+  if (!document.getElementById('hxScene')) { document.getElementById('hxWords').remove(); return; }
+  // Each word: plain text, or [text, style] where style is shout (one per phrase), teal or under
+  const PHRASES = [
+    ['Welcome', 'to', ['Spark', 'shout'], ['Night', 'shout']],
+    ['Wanna', ['build', 'teal'], 'something', 'like', ['this?', 'shout']],
+    ['Meet', ['Trent', 'shout'], 'the', ['vibe', 'under'], ['code', 'under'], 'mentor'],
+    ['Got', 'a', ['song,', 'teal'], 'game', 'or', ['puzzle', 'teal'], 'you', 'wanna', ['make?', 'shout']],
+  ];
+  const box = document.getElementById('hxWords'), line = document.getElementById('hxLine');
+  let i = 0;
+  function show() {
+    const p = PHRASES[i % PHRASES.length];
+    box.className = (i % 2 ? 'right' : 'left');
+    line.innerHTML = '';
+    // A shout that spans two words (Spark Night) stays in one frame
+    const groups = [];
+    p.forEach(w => {
+      const [text, style] = Array.isArray(w) ? w : [w, ''];
+      const last = groups[groups.length - 1];
+      if (style === 'shout' && last && last.style === 'shout') last.text += ' ' + text;
+      else groups.push({ text, style });
+    });
+    groups.forEach((g, k) => {
+      const span = document.createElement('span');
+      span.className = 'hx-w' + (g.style ? ' ' + g.style : '');
+      span.textContent = g.text;
+      span.style.transitionDelay = (k * 0.14) + 's';
+      line.appendChild(span);
+      line.appendChild(document.createTextNode(' '));
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => box.classList.add('in')));
+    setTimeout(() => { box.classList.remove('in'); box.classList.add('out'); }, 4200 + groups.length * 140);
+    setTimeout(() => { i++; show(); }, 5600 + groups.length * 140);
+  }
+  show();
+})();
+</script>
+<!-- ── SURFER VS SHARK ──
+     EVADE: you're the surfer, the shark hunts you.
+     CHOMP: you're the shark, the surfer runs.
+     Move with the mouse, a finger, or the arrow keys / WASD. -->
+<canvas id="hxGame" aria-hidden="true"></canvas>
+<div id="hxGamePanel" role="region" aria-label="Surfer vs Shark game">
+  <div class="hg-bar">SURFER VS SHARK</div>
+  <div class="hg-body">
+    <div class="hg-msg" id="hgMsg">PICK YOUR SIDE</div>
+    <div class="hg-sub" id="hgSub">Evade the shark, or be the shark. Move with your mouse, finger or arrow keys.</div>
+    <div class="hg-btns" id="hgBtns">
+      <button type="button" onclick="hxGameStart('evade')">EVADE</button>
+      <button type="button" class="chomp" onclick="hxGameStart('chomp')">CHOMP</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  const cv = document.getElementById('hxGame'), ctx = cv.getContext('2d');
+  const panel = document.getElementById('hxGamePanel');
+  const msgEl = document.getElementById('hgMsg'), subEl = document.getElementById('hgSub'), btnEl = document.getElementById('hgBtns');
+  const root = document.getElementById('agdRoot');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const narrow = matchMedia('(max-width: 900px)');
+  const placePanel = () => { if (narrow.matches) root.appendChild(panel); else document.body.appendChild(panel); };
+  placePanel(); narrow.addEventListener('change', placePanel);
+
+  let W = 0, H = 0;
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize(); window.addEventListener('resize', resize);
+
+  const BEST_KEY = 'hechoamp_game_best';
+  let best = { evade: 0, chomp: 0 };
+  try { best = Object.assign(best, JSON.parse(localStorage.getItem(BEST_KEY) || '{}')); } catch (e) {}
+  const saveBest = () => { try { localStorage.setItem(BEST_KEY, JSON.stringify(best)); } catch (e) {} };
+
+  const SIZE = 1.4; // sprite scale
+  const mk = (x, y, a) => ({ x, y, a, vx: 0, vy: 0, trail: [] });
+  let surfer, shark, mode = 'demo', clock = 0, t = 0, splash = [], flash = 0;
+  const pointer = { x: 0, y: 0, active: false };
+  const keys = new Set();
+
+  function spawn() {
+    const left = Math.random() < 0.5;
+    surfer = mk(left ? W * 0.18 : W * 0.82, H * (0.3 + Math.random() * 0.4), 0);
+    shark = mk(left ? W * 0.85 : W * 0.15, H * (0.3 + Math.random() * 0.4), Math.PI);
+  }
+  spawn();
+
+  function setPanel(msg, sub, buttons) {
+    msgEl.textContent = msg; subEl.textContent = sub;
+    btnEl.innerHTML = buttons === 'play'
+      ? '<button type="button" onclick="hxGameStart(\'evade\')">EVADE</button><button type="button" class="chomp" onclick="hxGameStart(\'chomp\')">CHOMP</button>'
+      : '<button type="button" class="quit" onclick="hxGameQuit()">QUIT</button>';
+  }
+
+  window.hxGameStart = function (m) {
+    mode = m; clock = 0; splash = []; spawn();
+    pointer.active = false;
+    const me = m === 'evade' ? surfer : shark;
+    pointer.x = me.x; pointer.y = me.y;
+    document.body.classList.add('hx-playing');
+    if (narrow.matches) window.scrollTo(0, 0);
+    setPanel(m === 'evade' ? 'EVADE: 0.0s' : 'CHOMP: 0.0s',
+      m === 'evade' ? 'You are the surfer. Stay away from the shark!' : 'You are the shark. Catch that surfer!', 'quit');
+  };
+  window.hxGameQuit = function () {
+    mode = 'demo'; spawn(); document.body.classList.remove('hx-playing');
+    setPanel('PICK YOUR SIDE', 'Evade the shark, or be the shark. Move with your mouse, finger or arrow keys.', 'play');
+  };
+
+  function endRound() {
+    const secs = clock;
+    let line;
+    if (mode === 'evade') {
+      const isBest = secs > best.evade; if (isBest) { best.evade = secs; saveBest(); }
+      line = `You lasted ${secs.toFixed(1)}s.` + (isBest ? ' New best!' : ` Best: ${best.evade.toFixed(1)}s.`);
+    } else {
+      const isBest = !best.chomp || secs < best.chomp; if (isBest) { best.chomp = secs; saveBest(); }
+      line = `Caught in ${secs.toFixed(1)}s.` + (isBest ? ' New best!' : ` Best: ${best.chomp.toFixed(1)}s.`);
+    }
+    mode = 'over'; document.body.classList.remove('hx-playing');
+    setPanel('CHOMP!', line + ' Play again?', 'play');
+  }
+
+  // Input: mouse anywhere, touch on the open water, keys (not Shift, the player uses Shift+arrows)
+  window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
+  cv.addEventListener('pointerdown', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
+  cv.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; } });
+  const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+  window.addEventListener('keydown', e => {
+    if (e.shiftKey || !(mode === 'evade' || mode === 'chomp')) return;
+    if (/INPUT|TEXTAREA/.test(document.activeElement && document.activeElement.tagName)) return;
+    const k = KEYMAP[e.code]; if (k) { keys.add(k); pointer.active = false; e.preventDefault(); }
+  });
+  window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys.delete(k); });
+
+  // Steering helpers
+  const ang = (dx, dy) => Math.atan2(dy, dx);
+  const wrapA = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+  function steer(e, desired, speed, turn, dt) {
+    const d = wrapA(desired - e.a);
+    e.a += Math.max(-turn * dt, Math.min(turn * dt, d));
+    e.vx = Math.cos(e.a) * speed; e.vy = Math.sin(e.a) * speed;
+  }
+  function move(e, dt) {
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    const m = 24;
+    if (e.x < m) { e.x = m; e.a = Math.PI - e.a; } if (e.x > W - m) { e.x = W - m; e.a = Math.PI - e.a; }
+    if (e.y < m) { e.y = m; e.a = -e.a; } if (e.y > H - m) { e.y = H - m; e.a = -e.a; }
+    e.trail.push([e.x, e.y]); if (e.trail.length > 26) e.trail.shift();
+  }
+  function userMove(e, speed, dt) {
+    let dx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0), dy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0);
+    if (dx || dy) { e.a = ang(dx, dy); e.vx = Math.cos(e.a) * speed; e.vy = Math.sin(e.a) * speed; }
+    else if (pointer.active) {
+      const px = pointer.x - e.x, py = pointer.y - e.y, dist = Math.hypot(px, py);
+      if (dist > 6) { const s = Math.min(speed, dist * 5); e.a = ang(px, py); e.vx = Math.cos(e.a) * s; e.vy = Math.sin(e.a) * s; }
+      else { e.vx *= 0.8; e.vy *= 0.8; }
+    } else { e.vx *= 0.9; e.vy *= 0.9; }
+    move(e, dt);
+  }
+  // Fleeing surfer: away from the shark, off the walls, out from behind the player windows, plus some wiggle
+  function flee(s, hunter, speed, dt) {
+    let fx = s.x - hunter.x, fy = s.y - hunter.y;
+    const d = Math.max(1, Math.hypot(fx, fy)); fx /= d; fy /= d;
+    const wall = 140;
+    if (s.x < wall) fx += (wall - s.x) / wall * 1.6; if (s.x > W - wall) fx -= (s.x - (W - wall)) / wall * 1.6;
+    if (s.y < wall) fy += (wall - s.y) / wall * 1.6; if (s.y > H - wall) fy -= (s.y - (H - wall)) / wall * 1.6;
+    const r = root.getBoundingClientRect();
+    if (s.x > r.left - 60 && s.x < r.right + 60 && s.y > r.top - 40 && s.y < r.bottom + 40) {
+      fx += s.x < (r.left + r.right) / 2 ? -2.2 : 2.2;
+    }
+    fx += Math.cos(t * 1.7 + s.y * 0.01) * 0.35; fy += Math.sin(t * 1.3 + s.x * 0.01) * 0.35;
+    steer(s, ang(fx, fy), speed, 4.2, dt); move(s, dt);
+  }
+  function chase(h, prey, speed, turn, dt) {
+    const lead = 0.25; // aim a little ahead of the prey
+    steer(h, ang(prey.x + prey.vx * lead - h.x, prey.y + prey.vy * lead - h.y), speed, turn, dt); move(h, dt);
+  }
+
+  // Drawing
+  function drawTrail(e, col) {
+    for (let i = 0; i < e.trail.length; i += 2) {
+      const [x, y] = e.trail[i], k = i / e.trail.length;
+      ctx.beginPath(); ctx.arc(x, y, 3 + (1 - k) * 9, 0, Math.PI * 2);
+      ctx.strokeStyle = col.replace('A', (k * 0.35).toFixed(2)); ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  }
+  function drawSurfer(s, you) {
+    drawTrail(s, 'rgba(240,237,232,A)');
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(SIZE, SIZE); ctx.rotate(s.a);
+    ctx.beginPath(); ctx.ellipse(0, 0, 26, 8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#C8A97E'; ctx.fill(); ctx.strokeStyle = '#F0EDE8'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(22, 0); ctx.strokeStyle = '#2eff5e'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.rotate(Math.PI / 2 + Math.sin(t * 6) * 0.08);
+    ctx.beginPath(); ctx.moveTo(-13, 2); ctx.lineTo(13, 2); ctx.strokeStyle = '#d9a066'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 2, 7, 5, 0, 0, Math.PI * 2); ctx.fillStyle = '#ff8c00'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -4, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#d9a066'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -5, 4.5, Math.PI, 0); ctx.fillStyle = '#1a1d2e'; ctx.fill();
+    ctx.restore();
+    if (you) label(s, 'YOU');
+  }
+  function drawShark(h, you, near) {
+    drawTrail(h, 'rgba(138,147,184,A)');
+    ctx.save(); ctx.translate(h.x, h.y); ctx.scale(SIZE, SIZE); ctx.rotate(h.a);
+    const wig = Math.sin(t * 9) * 0.25;
+    ctx.save(); ctx.translate(-30, 0); ctx.rotate(wig);
+    ctx.beginPath(); ctx.moveTo(4, 0); ctx.lineTo(-16, -12); ctx.lineTo(-10, 0); ctx.lineTo(-16, 12); ctx.closePath();
+    ctx.fillStyle = '#5a6488'; ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.moveTo(-6, -8); ctx.lineTo(4, -24); ctx.lineTo(12, -9); ctx.closePath();
+    ctx.moveTo(-6, 8); ctx.lineTo(4, 24); ctx.lineTo(12, 9); ctx.closePath(); ctx.fillStyle = '#5a6488'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(38, 0);
+    ctx.bezierCurveTo(30, -14, -10, -14, -32, -3); ctx.lineTo(-32, 3); ctx.bezierCurveTo(-10, 14, 30, 14, 38, 0);
+    ctx.fillStyle = '#8a93b8'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-2, 0, 22, 4, 0, 0, Math.PI * 2); ctx.fillStyle = '#4a5170'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(8, -2.5); ctx.lineTo(8, 2.5); ctx.closePath(); ctx.fillStyle = '#2e3354'; ctx.fill();
+    ctx.fillStyle = '#0a0c18';
+    ctx.beginPath(); ctx.arc(26, -6, 2, 0, Math.PI * 2); ctx.arc(26, 6, 2, 0, Math.PI * 2); ctx.fill();
+    if (near) {
+      ctx.beginPath(); ctx.moveTo(37, -6); ctx.lineTo(30, 0); ctx.lineTo(37, 6); ctx.strokeStyle = '#F0EDE8'; ctx.lineWidth = 2; ctx.stroke();
+    }
+    ctx.restore();
+    if (you) label(h, 'YOU');
+  }
+  function label(e, txt) {
+    ctx.font = "13px 'Anton', sans-serif"; ctx.textAlign = 'center';
+    ctx.fillStyle = '#2eff5e'; ctx.fillText(txt, e.x, e.y - 30 * SIZE);
+  }
+  function burst(x, y) {
+    for (let i = 0; i < 26; i++) {
+      const a = Math.random() * Math.PI * 2, v = 60 + Math.random() * 220;
+      splash.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 });
+    }
+    flash = 1;
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
+    ctx.clearRect(0, 0, W, H);
+    const playing = mode === 'evade' || mode === 'chomp';
+    if (playing) clock += dt;
+
+    if (mode === 'evade') {
+      userMove(surfer, 330, dt);
+      // the shark starts slow and gets faster and sharper the longer you last
+      chase(shark, surfer, Math.min(360, 150 + clock * 8), 2.2 + clock * 0.05, dt);
+      msgEl.textContent = 'EVADE: ' + clock.toFixed(1) + 's';
+    } else if (mode === 'chomp') {
+      userMove(shark, 350, dt);
+      flee(surfer, shark, 270, dt);
+      msgEl.textContent = 'CHOMP: ' + clock.toFixed(1) + 's';
+    } else if (!reduce) {
+      flee(surfer, shark, 150, dt);
+      chase(shark, surfer, 135, 1.8, dt);
+    }
+
+    const dist = Math.hypot(surfer.x - shark.x, surfer.y - shark.y);
+    if (dist < 30 * SIZE && mode !== 'over') {
+      burst((surfer.x + shark.x) / 2, (surfer.y + shark.y) / 2);
+      if (playing) endRound(); else spawn();
+    }
+
+    drawSurfer(surfer, mode === 'evade');
+    drawShark(shark, mode === 'chomp', dist < 110);
+
+    for (const p of splash) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.94; p.vy *= 0.94; p.life -= dt * 1.4;
+      if (p.life > 0) { ctx.beginPath(); ctx.arc(p.x, p.y, 2 + p.life * 3, 0, Math.PI * 2); ctx.fillStyle = `rgba(240,237,232,${p.life})`; ctx.fill(); }
+    }
+    splash = splash.filter(p => p.life > 0);
+    if (flash > 0) {
+      ctx.font = `${Math.round(54 + (1 - flash) * 30)}px 'Anton', sans-serif`; ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(255,140,0,${flash})`; ctx.fillText('CHOMP!', shark.x, shark.y - 50);
+      flash -= dt * 0.9;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+<!-- ── Dancing QR code: thegift.is/hechoenosa ── -->
+<a id="hxQR" href="https://thegift.is/hechoenosa" target="_blank" rel="noopener" aria-label="Hecho en Osa: open thegift.is/hechoenosa">
+  <div class="qr-dance"><div class="qr-beat" id="hxQrBeat">
+    <div class="qr-card"><svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 35 35" width="100%" height="100%" shape-rendering="crispEdges" class="segno"><rect x="-3" y="-3" width="35" height="35" fill="#F0EDE8"/><path class="qrline" stroke="#0a0c18" d="M0 0.5h7m3 0h2m3 0h1m3 0h2m1 0h7m-29 1h1m5 0h1m1 0h2m1 0h1m2 0h1m1 0h3m3 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m1 0h1m3 0h3m3 0h1m1 0h1m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m4 0h1m2 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m1 0h5m1 0h1m1 0h1m2 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m3 0h1m1 0h1m2 0h3m1 0h1m2 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-20 1h2m1 0h1m4 0h2m1 0h1m-20 1h3m1 0h2m10 0h2m7 0h2m-28 1h1m3 0h2m1 0h2m1 0h1m1 0h1m1 0h3m1 0h7m3 0h1m-27 1h1m1 0h1m1 0h2m2 0h1m1 0h2m1 0h2m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m-28 1h2m2 0h1m4 0h4m3 0h1m1 0h1m1 0h1m4 0h1m2 0h1m-25 1h4m1 0h2m2 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h3m-27 1h4m1 0h4m1 0h1m1 0h1m1 0h2m1 0h1m2 0h2m1 0h4m-28 1h1m1 0h1m2 0h2m7 0h2m2 0h1m3 0h3m1 0h2m-28 1h3m4 0h1m1 0h4m2 0h1m3 0h2m2 0h2m-26 1h3m1 0h1m1 0h2m1 0h1m2 0h1m1 0h4m2 0h2m1 0h3m2 0h1m-24 1h1m3 0h1m3 0h2m1 0h2m2 0h1m2 0h1m2 0h1m-27 1h1m1 0h1m2 0h4m2 0h3m1 0h2m1 0h1m1 0h1m1 0h5m-25 1h1m1 0h1m3 0h2m3 0h2m2 0h2m2 0h2m2 0h3m-27 1h2m3 0h1m1 0h1m2 0h1m2 0h1m1 0h12m-20 1h1m2 0h3m4 0h3m3 0h2m1 0h2m-29 1h7m4 0h3m3 0h1m1 0h2m1 0h1m1 0h1m1 0h2m-28 1h1m5 0h1m1 0h3m1 0h3m5 0h1m3 0h1m-25 1h1m1 0h3m1 0h1m2 0h5m1 0h1m2 0h1m1 0h7m1 0h1m-29 1h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m3 0h2m1 0h1m4 0h1m2 0h1m-28 1h1m1 0h3m1 0h1m1 0h1m6 0h4m1 0h1m2 0h1m1 0h1m2 0h1m-29 1h1m5 0h1m1 0h1m4 0h2m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m-28 1h7m3 0h7m1 0h6m3 0h1"/></svg></div>
+    <div class="qr-cap">SCAN ME</div>
+    <div class="qr-url">thegift.is/hechoenosa</div>
+  </div></div>
+</a>
+<script>
+// The QR also bounces with the bass while music plays
+(function () {
+  const el = document.getElementById('hxQrBeat'), audioEl = document.getElementById('audioEl');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let level = 0, buf = null;
+  (function tick() {
+    let target = 0;
+    try {
+      if (typeof analyser !== 'undefined' && analyser && !audioEl.paused) {
+        if (!buf || buf.length !== analyser.frequencyBinCount) buf = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(buf);
+        let sum = 0; for (let i = 0; i < 10; i++) sum += buf[i];
+        target = Math.max(0, (sum / 10 / 255 - 0.4) / 0.6);
+      }
+    } catch (e) {}
+    level += (target - level) * 0.25;
+    el.style.transform = level > 0.01 ? `scale(${(1 + level * 0.12).toFixed(3)})` : '';
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
+</body>
+</html>
