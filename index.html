@@ -732,7 +732,7 @@
     100% { transform: translateY(0) rotate(0deg); }
   }
   @media (max-width: 900px) {
-    #hxQR { right: 10px; bottom: 10px; }
+    #hxQR { display: none; }
     #hxQR .qr-card { width: 88px; padding: 5px; }
     #hxQR .qr-cap { font-size: 11px; letter-spacing: 2px; margin-top: 4px; }
     #hxQR .qr-url { display: none; }
@@ -1646,7 +1646,8 @@ function bindCySlider(trackId, fillId, setter, def) {
 function resizeCy() {
   if (!CY.canvas) return;
   const wrap = CY.canvas.parentElement;
-  const dpr = window.devicePixelRatio || 1;
+  // Phones: cap the pixel density so the visualizer stays smooth
+  const dpr = Math.min(window.devicePixelRatio || 1, window.innerWidth <= 900 ? 1.25 : 2);
   const w = wrap.clientWidth, h = wrap.clientHeight;
   CY.canvas.width = w * dpr;
   CY.canvas.height = h * dpr;
@@ -1797,7 +1798,14 @@ function drawCy() {
 
   const f = getAudioFeatures();
   const sens = CY.sens * 2 + 0.4; // 0.4..2.4
-  CY.t += 0.016 * (1 + f.mid * 1.5);
+  // Advance by real time, not per frame: phones run at 30, 60 or 120 frames a
+  // second, which used to make the visuals lurch slower and faster. The music
+  // still speeds them up, but smoothly.
+  const nowT = performance.now();
+  const dt = CY.lastT ? Math.min(0.05, (nowT - CY.lastT) / 1000) : 0.016;
+  CY.lastT = nowT;
+  CY.speed = (CY.speed || 1) + ((1 + f.mid * 1.5) - (CY.speed || 1)) * Math.min(1, dt * 3);
+  CY.t += dt * CY.speed;
 
   switch (CY.mode) {
     case 'plasma':        drawPlasma(ctx, W, H, f, sens); break;
@@ -2431,7 +2439,7 @@ animFrame();
 
   let W = 0, H = 0;
   function resize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, narrow.matches ? 1.25 : 2);
     W = window.innerWidth; H = window.innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
@@ -2449,6 +2457,13 @@ animFrame();
   const keys = new Set();
 
   function spawn() {
+    // Narrow screens: start at opposite ends top to bottom, so there's room to react
+    if (W < 600) {
+      const top = Math.random() < 0.5;
+      surfer = mk(W * 0.5, top ? H * 0.18 : H * 0.82, 0);
+      shark = mk(W * 0.5, top ? H * 0.85 : H * 0.15, top ? -Math.PI / 2 : Math.PI / 2);
+      return;
+    }
     const left = Math.random() < 0.5;
     surfer = mk(left ? W * 0.18 : W * 0.82, H * (0.3 + Math.random() * 0.4), 0);
     shark = mk(left ? W * 0.85 : W * 0.15, H * (0.3 + Math.random() * 0.4), Math.PI);
@@ -2606,8 +2621,14 @@ animFrame();
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
-    ctx.clearRect(0, 0, W, H);
     const playing = mode === 'evade' || mode === 'chomp';
+    // Phones: the demo chase is hidden behind the player anyway, so skip drawing it
+    if (!playing && narrow.matches && splash.length === 0 && flash <= 0) {
+      if (!cv.dataset.idle) { ctx.clearRect(0, 0, W, H); cv.dataset.idle = '1'; }
+      requestAnimationFrame(frame); return;
+    }
+    delete cv.dataset.idle;
+    ctx.clearRect(0, 0, W, H);
     if (playing) clock += dt;
 
     if (mode === 'evade') {
@@ -2664,6 +2685,7 @@ animFrame();
   let level = 0, buf = null;
   (function tick() {
     let target = 0;
+    if (el.offsetParent === null) { requestAnimationFrame(tick); return; }
     try {
       if (typeof analyser !== 'undefined' && analyser && !audioEl.paused) {
         if (!buf || buf.length !== analyser.frequencyBinCount) buf = new Uint8Array(analyser.frequencyBinCount);
