@@ -4,7 +4,7 @@ A retro music player with live visualizers, a Surfer vs Shark game and a dancing
 
 **Built by Trent Simpson, Mentor · Hecho en Osa 2026**
 
-- Live player: _link coming soon_
+- Live player: https://hechoenosaplayer.netlify.app
 - Hecho en Osa: https://thegift.is/hechoenosa
 
 ## What it does
