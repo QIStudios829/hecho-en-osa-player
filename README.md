@@ -2,7 +2,7 @@
 
 A retro music player with live visualizers, a Surfer vs Shark game and a dancing QR code, made for **Hecho en Osa**: a free 8-week hackathon and science fair for young builders, ages 11 to 17, on the Osa Peninsula, Costa Rica, run by The Gift Academy.
 
-**Built by Trent Simpson, Mentor · Hecho en Osa 2026**
+**Built by Trent Simpson, Helper · Hecho en Osa 2026**
 
 - Live player: https://hechoenosaplayer.netlify.app
 - Hecho en Osa: https://thegift.is/hechoenosa
@@ -51,4 +51,4 @@ Got a song, game or puzzle you wanna make? Turn your idea into something real. B
 
 ## Credits
 
-Hecho en Osa is The Gift Academy's event and brand. Player by Trent Simpson, Mentor.
+Hecho en Osa is The Gift Academy's event and brand. Player by Trent Simpson, Helper.
